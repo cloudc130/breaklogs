@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script>
+    console.log("Logout Iframe loaded and script executed.");
+
+    function clearTimerData() {
+        console.log("Clearing timer related data from localStorage...");
+        const keysToRemove = [
+            "isRunning",
+            "startTime",
+            "initialStartTime",
+            "status",
+            "lastStatus",
+            "pendingStartLog",
+            "pendingStopLog",
+            "retryScheduled",
+            "breakDuration",
+            "lunchDuration",
+            "shiftStart",
+            "shiftEnd",
+            "retryCountLong",
+            "retryDuration",
+            "retryInitialTimestamp",
+            "retryScheduledTime",
+            "retryStatus"
+            // Add any other timer-related keys you might be using
+        ];
+
+        keysToRemove.forEach(key => {
+            console.log(`Removing ${key}:`, localStorage.getItem(key));
+            localStorage.removeItem(key);
+            console.log(`${key} removed:`, localStorage.getItem(key));
+        });
+        console.log("Timer related data cleared.");
+    }
+
+    function performLogout() {
+        console.log("Performing logout...");
+        clearTimerData(); // Clear timer data first
+
+        console.log("Removing loggedInUserId:", localStorage.getItem("loggedInUserId"));
+        localStorage.removeItem("loggedInUserId");
+        console.log("loggedInUserId removed:", localStorage.getItem("loggedInUserId"));
+
+        console.log("Removing loggedInUserName:", localStorage.getItem("loggedInUserName"));
+        localStorage.removeItem("loggedInUserName");
+        console.log("loggedInUserName removed:", localStorage.getItem("loggedInUserName"));
+
+        console.log("Removing bioCount:", localStorage.getItem("bioCount"));
+        localStorage.removeItem("bioCount");
+        console.log("bioCount removed:", localStorage.getItem("bioCount"));
+
+        console.log("Redirecting parent window in 500ms...");
+        setTimeout(() => {
+            parent.window.location.replace(parent.window.location.origin + parent.window.location.pathname + parent.window.location.search);
+        }, 500); // Delay the reload by 500 milliseconds
+    }
+
+    // Move the message listener outside the performLogout function.
+    window.addEventListener("message", (event) => {
+        if (event.data === "logoutConfirmed") {
+            performLogout();
+        }
+    });
+
+</script>
+</head>
+<body></body>
+</html>

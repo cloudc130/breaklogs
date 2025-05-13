@@ -1,0 +1,375 @@
+body {
+    font-family: 'Courier New', Courier, monospace; /* Add fallbacks */
+    background-color: #333333; /* Dark background */
+    color: #f0f0f0; /* Light text */
+    margin: 0; /* Remove default body margin */
+    display: flex; /* Enable flexbox for centering */
+    justify-content: center; /* Center horizontally */
+    align-items: center; /* Center vertically */
+    min-height: 100vh; /* Ensure full viewport height */
+}
+
+button, input, h1, h2, td, th { /* Added table cells/headers */
+   font-family: inherit; /* Makes these elements use the body font */
+}
+
+.container {
+    background: transparent; /* Make the container transparent */
+    padding: 40px; /* Add some padding around the content */
+    border-radius: 12px; /* Keep some rounded corners if desired */
+    /* box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); Optional: subtle shadow */
+    max-width: 900px; /* Adjust as needed for the overall width */
+    width: 90%; /* Take up 90% of the screen width on smaller devices */
+    display: flex; /* Arrange timer, buttons, and login horizontally */
+    align-items: center; /* Vertically align items within the container */
+}
+
+#timer-section {
+    width: 300px;
+    text-align: left; /* Align timer text to the left */
+    padding-right: 30px; /* Space between timer and buttons */
+    border-right: 1px solid #000000; /* Subtle separator */
+}
+
+#timer {
+    font-size: 4em; /* Make the timer huge */
+    font-weight: bold;
+    margin-bottom: 20px;
+    color: #00bcd4; /* A more vibrant color for the timer */
+    display: none;
+}
+
+#timer.exceeded {
+    color: red;
+    animation: flickerAnimation 1s infinite alternate;
+}
+
+#timerWarning {
+    color: red;
+    margin-top: 5px;
+}
+
+@keyframes flickerAnimation {
+    0% { opacity: 1; }
+    100% { opacity: 0.5; }
+}
+
+#companyLogo { /* Or use #timer-section img */
+    display: block;      /* Treat the image as a block element */
+    width: 300px;        /* Set the width */
+    margin-bottom: -30px; /* Keep the space below the logo */
+    margin-left: -50px;   /* Auto margin left */
+}
+
+.button-section {
+    flex-grow: 1; /* Allow buttons to take up available space */
+    padding: 0 30px; /* Space between buttons and login */
+    text-align: left; /* Align buttons to the left */
+}
+
+button {
+    background: none; /* Remove background color */
+    color: #f0f0f0; /* Light text color */
+    border: none;
+    padding: 10px 15px;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: color 0.3s ease; /* Smooth hover effect */
+    display: block; /* Stack buttons vertically */
+    margin-bottom: 10px;
+    text-align: left; /* Align button text to the left */
+}
+
+button:hover {
+    color: #00bcd4; /* Highlight on hover */
+}
+
+button:disabled {
+    color: #777;
+    cursor: not-allowed;
+}
+
+button.active-status {
+    color: #4caf50; /* Green for active status */
+    font-weight: bold;
+}
+
+.login-section {
+    width: 300px; /* Adjust width of the login section */
+    padding-left: 30px; /* Space between buttons and login */
+    text-align: left; /* Align login elements to the left */
+    border-left: 1px solid #000000; /* Subtle separator */
+}
+
+.login-section h2 {
+    color: #f0f0f0;
+    margin-bottom: 20px;
+}
+
+.input-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    width: 100%;
+}
+
+input, .password-toggle {
+    padding: 10px 12px;
+    font-size: 1em;
+    border: 1px solid #555;
+    background-color: #333; /* Dark input background */
+    color: #f0f0f0;
+    box-sizing: border-box;
+    line-height: 1.5;
+    border-radius: 5px;
+}
+
+#password {
+    border-radius: 5px 0 0 5px;
+    border-right: none;
+    flex-grow: 1;
+}
+
+#userId {
+    width: 100%;
+    border-radius: 5px;
+}
+
+.password-toggle {
+    border-radius: 0 5px 5px 0;
+    border-left: none;
+    width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 10px;
+    cursor: pointer;
+    background-color: #555;
+}
+
+#controls {
+    display: none; /* Initially hidden */
+    margin-top: 20px;
+    text-align: left; /* Align controls to the left within their section */
+}
+
+#stopBtn, #logoutBtn {
+    background: none; /* Remove background */
+    color: #f44336; /* Red for stop/logout */
+    border: none;
+    padding: 10px 15px;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: color 0.3s ease;
+    display: inline-block; /* Display horizontally if needed */
+    margin-right: 10px;
+}
+
+#stopBtn:hover, #logoutBtn:hover {
+    color: #d32f2f;
+}
+
+#logoutBtn:disabled {
+    color: #777;
+    cursor: not-allowed;
+}
+
+#historyDisplay {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #222; /* Dark modal background */
+    color: #f0f0f0;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+    max-height: 80vh;
+    overflow-y: auto;
+    width: 90%;
+    max-width: 700px;
+    text-align: left; /* Align text within the modal */
+}
+
+#historyDisplay h2 {
+    color: #f0f0f0;
+    margin-bottom: 15px;
+}
+
+#historyTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    border: 1px solid #555;
+}
+
+#historyTable th, #historyTable td {
+    border: 1px solid #555;
+    padding: 10px 12px;
+    text-align: left;
+}
+
+#historyTable th {
+    background-color: #333;
+    font-weight: 600;
+    color: #eee;
+}
+
+#historyTable tr:nth-child(even) {
+    background-color: #2a2a2a;
+}
+
+#historyTable tr:hover {
+    background-color: #444;
+}
+
+#closeHistoryBtn, #exportHistoryBtn {
+    background: none; /* Minimalist buttons */
+    color: #f0f0f0;
+    border: 1px solid #555; /* Add a border for visual distinction */
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: color 0.3s ease, border-color 0.3s ease;
+    display: inline-block;
+    margin-top: 15px;
+    margin-right: 10px; /* Add some spacing */
+}
+
+#closeHistoryBtn:hover, #exportHistoryBtn:hover {
+    color: #00bcd4;
+    border-color: #00bcd4;
+}
+
+.custom-dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #222222; /* Or #333333 */
+    color: #f0f0f0;
+    padding: 25px;
+    border: 1px solid #555555;
+    z-index: 1000;
+    border-radius: 12px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    min-width: 300px; /* Ensure a minimum width */
+    max-width: 90%;   /* Responsive */
+}
+
+.custom-dialog p {
+    margin-bottom: 20px;
+    font-size: 1.1em;
+    text-align: center;
+    margin-top: 0; /* Remove default top margin */
+}
+
+.custom-dialog .button-container {
+    text-align: center; /* This should already be there from Option 2 */
+    /* Optional: Add/adjust top margin if needed for spacing */
+    margin-top: 20px;
+}
+
+.custom-dialog-button {
+    display: inline-block; /* CRITICAL: Makes buttons sit side-by-side */
+    vertical-align: middle; /* Aligns buttons nicely if they have different heights (unlikely here) */
+
+    /* Keep your existing styles from Option 2 */
+    background: transparent;
+    color: #f0f0f0;
+    border: 1px solid #555555;
+    border-radius: 5px;
+    padding: 8px 15px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: color 0.2s ease, border-color 0.2s ease;
+    margin: 0 5px; /* Provides space *between* the buttons */
+}
+
+.custom-dialog-button.confirm-button:hover {
+    border-color: #00bcd4; /* Use theme accent for confirm hover */
+    color: #00bcd4;
+}
+
+.custom-dialog-button.cancel-button:hover {
+    border-color: #f44336; /* Use red accent for cancel hover */
+    color: #f44336;
+}
+
+#scheduleDialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #222222; /* Match custom dialog background */
+    color: #f0f0f0;
+    padding: 25px;
+    border: 1px solid #555555;
+    z-index: 1000;
+    border-radius: 12px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    min-width: 300px;
+    max-width: 90%;
+    text-align: center; /* Center content within the dialog */
+}
+
+#scheduleDialog h2 {
+    color: #f0f0f0;
+    margin-bottom: 20px;
+    text-align: center; /* Center the header */
+}
+
+#scheduleDialog label {
+    display: inline-block; /* Allows setting a width */
+    width: 150px; /* Adjust this width as needed */
+    margin-bottom: 5px;
+    font-size: 1em;
+    text-align: right; /* Align labels to the right */
+    margin-right: 10px; /* Add some space between label and input */
+}
+
+#scheduleDialog input[type='time'],
+#scheduleDialog select {
+    padding: 10px 12px;
+    font-size: 1em;
+    border: 1px solid #555;
+    background-color: #333;
+    color: #f0f0f0;
+    box-sizing: border-box;
+    line-height: 1.5;
+    border-radius: 5px;
+    margin-bottom: 15px;
+    width: calc(100% - 160px); /* Adjust width to account for label width and margin */
+    display: inline-block; /* Align with the label */
+    vertical-align: middle; /* Vertically align with the label */
+}
+
+#dialogUpdateScheduleBtn {
+    background: transparent;
+    color: #f0f0f0;
+    border: 1px solid #555555;
+    border-radius: 5px;
+    padding: 8px 15px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: color 0.2s ease, border-color 0.2s ease;
+    margin-top: 20px; /* Add some space above the button */
+}
+
+#dialogUpdateScheduleBtn:hover {
+    border-color: #00bcd4;
+    color: #00bcd4;
+}
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7); /* Dark overlay */
+    z-index: 999;
+    display: none;
+}

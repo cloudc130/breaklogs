@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Break Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <link rel="manifest" href="/site.webmanifest">
+</head>
+<body>
+    <div class="container">
+<div id="timer-section">
+    <img src="images.png" alt="Company Logo" id="companyLogo"> <h1 style="margin-bottom: 10px;">Agent Break Tracker</h1>
+    <div id="timer">00:00:00</div>
+</div>
+        <div class="button-section">
+            <input type="text" id="userId" placeholder="Enter your 4-digit ID" maxlength="4">
+            <div class="input-container">
+                <input type="password" id="password" placeholder="Enter your password">
+                <button type="button" class="password-toggle" id="passwordToggle">
+                    <span id="toggleText">Show</span>
+                </button>
+            </div>
+            <button id="loginBtn">Login</button>
+            <div id="controls">
+                <h2 id="agentName" style="margin-top: 20px; margin-bottom: 10px;"></h2>
+                <button id="breakBtn">Break</button>
+                <button id="lunchBtn">Lunch</button>
+                <button id="bioBtn">Bio</button>
+                <button id="historyBtn">History</button>
+                <button id="stopBtn">Stop</button>
+                <button id="logoutBtn">Logout</button>
+            </div>
+        </div>
+        <div class="login-section">
+            </div>
+        <div id="historyDisplay">
+            <h2>History</h2>
+            <table id="historyTable">
+                <thead>
+                    <tr>
+                        <th>Status</th>
+                        <th>StartTime</th>
+                        <th>EndTime</th>
+                        <th>Duration</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            <button id="exportHistoryBtn">Export</button> <button id="closeHistoryBtn">Close</button>
+        </div>
+    </div>
+
+    <iframe id="logoutFrame" style="display:none;"></iframe>
+
+    <script src="script.js"></script>
+</body>
+</html>
