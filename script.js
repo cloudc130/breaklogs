@@ -872,13 +872,15 @@ document.getElementById("lunchBtn").addEventListener("click", async () => await 
 document.getElementById("bioBtn").addEventListener("click", async () => await startTimer("bio"));
 document.getElementById("stopBtn").addEventListener("click", async () => await stopTimer());
 
-document.getElementById("logoutBtn").addEventListener("click", () => {
+document.getElementById("logoutBtn").addEventListener("click", async () => {
     const logoutBtn = document.getElementById("logoutBtn");
     const originalText = logoutBtn.textContent;
     logoutBtn.textContent = "Logging Out...";
     logoutBtn.disabled = true;
     const frame = document.getElementById("logoutFrame");
     frame.src = "logoutFrame.html";
+
+    await resendPendingLogs();
 
     const onLoadHandler = () => {
         console.log("iframe loaded");
