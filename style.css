@@ -363,6 +363,51 @@ input, .password-toggle {
     color: #00bcd4;
 }
 
+#aboutDialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #222222; /* Or #333333, matching your custom dialog */
+    color: #f0f0f0;
+    padding: 25px;
+    border: 1px solid #555555;
+    z-index: 1000;
+    border-radius: 12px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    min-width: 300px; /* Ensure a minimum width */
+    max-width: 90%;   /* Responsive */
+    text-align: center; /* Center the content */
+}
+
+#aboutDialog h2 {
+    color: #f0f0f0;
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+#aboutDialog p {
+    margin-bottom: 15px;
+    font-size: 1.1em;
+}
+
+#closeAboutBtn {
+    background: transparent;
+    color: #f0f0f0;
+    border: 1px solid #555555;
+    border-radius: 5px;
+    padding: 8px 15px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: color 0.2s ease, border-color 0.2s ease;
+    margin-top: 20px;
+}
+
+#closeAboutBtn:hover {
+    border-color: #f44336; /* Use a color indicating close/cancel */
+    color: #f44336;
+}
+
 .overlay {
     position: fixed;
     top: 0;

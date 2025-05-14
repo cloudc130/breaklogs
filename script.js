@@ -83,6 +83,68 @@ function showAlert(message) {
     createCustomDialog(message);
 }
 
+function showAboutDialog() {
+    const overlay = document.createElement('div');
+    overlay.className = 'overlay';
+    overlay.style.display = 'block';
+    document.body.appendChild(overlay);
+
+    const dialog = document.createElement('div');
+    dialog.className = 'custom-dialog';
+    dialog.id = 'aboutDialog'; // Give it a unique ID
+
+    const header = document.createElement('h2');
+    header.textContent = "Mabrox Agent Break Tracker";
+    dialog.appendChild(header);
+
+    const versionParagraph = document.createElement('p');
+    versionParagraph.textContent = "Version: 69.0";
+    dialog.appendChild(versionParagraph);
+
+    const developedByParagraph = document.createElement('p');
+    developedByParagraph.textContent = "Developed by: Elvin Josua P. Heveling"; // Replace with your info
+    dialog.appendChild(developedByParagraph);
+
+    const developedWithParagraph = document.createElement('p');
+    developedWithParagraph.textContent = "Developed with: JavaScript, HTML, CSS"; // Tech stack
+    dialog.appendChild(developedWithParagraph);
+
+    const testersParagraph = document.createElement('p');
+    testersParagraph.textContent = "Special thanks to our testers: Ginbeer, Sean, Mark Christian, JM"; // Add tester names
+    dialog.appendChild(testersParagraph);
+
+    const aiAssistanceParagraph = document.createElement('p');
+    aiAssistanceParagraph.textContent = "AI Assistance: Gemini"; // Acknowledge Gemini
+    dialog.appendChild(aiAssistanceParagraph);
+
+    const contactParagraph = document.createElement('p');
+    contactParagraph.textContent = "Contact: breaklogs.mabrox@gmail.com"; // Replace with your contact info
+    dialog.appendChild(contactParagraph);
+
+    const closeButton = document.createElement('button');
+    closeButton.textContent = 'Close';
+    closeButton.id = 'closeAboutBtn'; // Unique ID for the close button
+    closeButton.className = 'custom-dialog-button';
+    dialog.appendChild(closeButton);
+
+    document.body.appendChild(dialog);
+
+    closeButton.addEventListener('click', () => {
+        removeAboutDialog();
+    });
+
+    overlay.addEventListener('click', () => {
+        removeAboutDialog();
+    });
+}
+
+function removeAboutDialog() {
+    const overlay = document.querySelector('.overlay');
+    const dialog = document.getElementById('aboutDialog');
+    if (overlay) document.body.removeChild(overlay);
+    if (dialog) document.body.removeChild(dialog);
+}
+
 function showScheduleUpdateDialog() {
     const overlay = document.createElement('div');
     overlay.className = 'overlay';
@@ -376,6 +438,11 @@ document.addEventListener("DOMContentLoaded", async function () {
     const controlsDiv = document.getElementById("controls");
     const logoutButton = document.getElementById("logoutBtn");
     const agentNameH2 = document.getElementById("agentName");
+    const companyLogo = document.getElementById('companyLogo');
+
+    if (companyLogo) {
+        companyLogo.addEventListener('click', showAboutDialog);
+    }
 
     if (storedLoggedInUserId && storedLoggedInUserName) {
         // --- User is logged in ---
