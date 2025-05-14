@@ -880,7 +880,13 @@ document.getElementById("logoutBtn").addEventListener("click", async () => {
     const frame = document.getElementById("logoutFrame");
     frame.src = "logoutFrame.html";
 
-    await resendPendingLogs();
+    try {
+        await resendPendingLogs();
+        console.log("resendPendingLogs completed."); // Add this log
+    } catch (error) {
+        console.error("Error during resendPendingLogs:", error);
+        showAlert("An error occurred while trying to send pending logs.");
+    }
 
     const onLoadHandler = () => {
         console.log("iframe loaded");
