@@ -8,6 +8,7 @@ const apiUrl = "https://script.google.com/macros/s/AKfycbz9huQLWfKbiwWuX8t_IxSjr
 let lastStatus = "";
 let lastAlertTime = 0;
 let failedStartLog = null; // Add this line
+let isStopPending = false; // New flag to track pending stop
 
 const timerDisplay = document.getElementById("timer");
 
@@ -537,7 +538,7 @@ async function resendPendingLogs() {
 }
 
 async function startTimer(status) {
-    if (isRunning) return;
+    if (isRunning || isStopPending) return; // Check isStopPending
 
     // Attempt to resend any pending logs at the start of a new timer
     await resendPendingLogs();
@@ -548,6 +549,8 @@ async function startTimer(status) {
         createCustomDialog(
             confirmationMessage,
             async () => { // Confirm callback
+                console.log("startTimer() confirm callback for:", status); // ADDED LOG
+                isStopPending = false;  //<-- CORRECT PLACEMENT: Clear BEFORE starting new timer
                 startTime = Date.now();
                 initialStartTime = startTime; // Record the initial start time
                 const startTimestamp = new Date(startTime + (8 * 60 * 60 * 1000)).toISOString().replace("T", " ").split(".")[0]; // Capture formatted start timestamp
@@ -639,6 +642,24 @@ function restoreTimer() {
     let savedInitialStartTime = parseInt(localStorage.getItem("initialStartTime"), 10);
     let savedStatus = localStorage.getItem("status");
     let savedLastStatus = localStorage.getItem("lastStatus");
+    isStopPending = localStorage.getItem("isStopPending") === "true";
+    const stopCompleted = localStorage.getItem("stopCompleted") === "true";
+
+    if (stopCompleted) {
+        console.log("restoreTimer: Stop was successfully completed, not restoring timer.");
+        localStorage.removeItem("stopCompleted");
+        enableTimerButtons();
+        return;
+    }
+
+    if (isStopPending) {
+        // A stop was pending, don't resume timer, try to complete the stop
+        console.log("restoreTimer: Resuming pending stop action...");
+        displaySendingMessage(); // Call it here, only once
+        attemptCompletePendingStop();
+        disableTimerButtons();
+        return;
+    }
 
     if (!savedStartTime || !savedStatus) return;
 
@@ -723,13 +744,60 @@ function restoreTimer() {
 
     // DO NOT CALL logStatus HERE
     console.log("Timer restored on page load for status:", savedStatus);
+
+    enableTimerButtons(); // Enable action buttons if no pending stop
+}
+
+async function attemptCompletePendingStop() {
+    const pendingStopLogData = localStorage.getItem("pendingStopLog");
+    if (pendingStopLogData) {
+        const stopLogData = JSON.parse(pendingStopLogData);
+        console.log("attemptCompletePendingStop: Attempting to resend:", stopLogData);
+
+        // DO NOT call displaySendingMessage() here
+
+        const stopSuccess = await logStatus(
+            stopLogData.status,
+            stopLogData.duration,
+            stopLogData.startTime,
+            stopLogData.endTime,
+            undefined,
+            stopLogData.timestamp
+        );
+        console.log("attemptCompletePendingStop: logStatus result:", stopSuccess);
+
+        if (stopSuccess) {
+            localStorage.removeItem("pendingStopLog");
+            localStorage.removeItem("isStopPending");
+            localStorage.removeItem("startTime");
+            localStorage.removeItem("initialStartTime");
+            localStorage.removeItem("status");
+            localStorage.removeItem("lastStatus");
+            localStorage.setItem("stopCompleted", "true");
+            console.log("attemptCompletePendingStop: Pending stop log resent successfully! Reloading page.");
+            showAlert("Pending stop log resent successfully! Page will reload.");
+            clearSendingMessage(); // Ensure it's cleared before reload
+            // enableTimerButtons(); // No need to enable before reload
+            window.location.reload(); // FORCE PAGE RELOAD
+        } else {
+            console.error("attemptCompletePendingStop: Failed to resend pending stop log.");
+            showAlert("Failed to resend pending stop log. Please try again.");
+            clearSendingMessage(); // Ensure it's cleared even on failure
+            enableTimerButtons();
+        }
+    } else {
+        if (localStorage.getItem("isStopPending") === "true") {
+            console.warn("attemptCompletePendingStop: No pending stop log found, but isStopPending was true.");
+        }
+        localStorage.removeItem("isStopPending");
+        enableTimerButtons();
+    }
 }
 
 async function stopTimer() {
     if (!isRunning) return;
-    clearInterval(timerInterval); // Clear the general timer interval
+    clearInterval(timerInterval);
 
-    // Clear the specific interval associated with the stopped status
     const currentIntervalId = localStorage.getItem(`intervalId_${lastStatus}`);
     if (currentIntervalId) {
         clearInterval(parseInt(currentIntervalId, 10));
@@ -737,8 +805,8 @@ async function stopTimer() {
     }
 
     isRunning = false;
-    stopTime = Date.now(); // Record the stop time
-    const stopTimestamp = new Date(stopTime + (8 * 60 * 60 * 1000)).toISOString().replace("T", " ").split(".")[0]; // Capture formatted stop timestamp
+    stopTime = Date.now();
+    const stopTimestamp = new Date(stopTime + (8 * 60 * 60 * 1000)).toISOString().replace("T", " ").split(".")[0];
 
     let elapsedTime = stopTime - startTime;
     let duration = formatTime(elapsedTime);
@@ -746,67 +814,94 @@ async function stopTimer() {
     const timerDisplay = document.getElementById("timer");
     const warningTextElement = document.getElementById("timerWarning");
     if (timerDisplay) {
-        timerDisplay.classList.remove("exceeded"); // Remove the exceeded class on stop
+        timerDisplay.classList.remove("exceeded");
     }
     if (warningTextElement) {
         warningTextElement.textContent = "";
     }
 
     document.getElementById("stopBtn").style.display = "none";
+    disableTimerButtons();
 
-    // Disable all action buttons and history button when stop is initiated
-    document.getElementById("breakBtn").disabled = true;
-    document.getElementById("lunchBtn").disabled = true;
-    document.getElementById("bioBtn").disabled = true;
-    document.getElementById("historyBtn").disabled = true;
-
-    // Revert the active button to its original state
     if (activeButton) {
         activeButton.textContent = activeButton.id.charAt(0).toUpperCase() + activeButton.id.slice(1, -3);
         activeButton.classList.remove("active-status");
         activeButton = null;
     }
 
-    document.getElementById("logoutBtn").style.display = "none"; // Hide logout button during logStatus
+    document.getElementById("logoutBtn").style.display = "none";
+
+    localStorage.setItem("isStopPending", "true");
+    localStorage.removeItem("stopCompleted"); // CLEAR the flag at the start of a new stop
+
+    const stopLogData = {
+        status: lastStatus,
+        duration: duration,
+        startTime: initialStartTime,
+        endTime: new Date(stopTime + (8 * 60 * 60 * 1000)).toISOString().replace("T", " ").split(".")[0],
+        timestamp: stopTimestamp
+    };
+    localStorage.setItem("pendingStopLog", JSON.stringify(stopLogData));
 
     // Attempt to send any failed start log first (as per previous logic)
     const startLogSent = await sendFailedStartLog();
 
-    // Attempt to log the stop action
-    const endTimeAtClick = new Date(stopTime + (8 * 60 * 60 * 1000)).toISOString().replace("T", " ").split(".")[0];
-    const stopLogResult = await logStatus(lastStatus, duration, initialStartTime, endTimeAtClick, undefined, stopTimestamp);
+    const stopLogResult = await logStatus(lastStatus, duration, initialStartTime, stopLogData.endTime, undefined, stopTimestamp);
 
-    if (!stopLogResult) {
+    if (stopLogResult) {
+        localStorage.removeItem("isRunning");
+        localStorage.removeItem("startTime");
+        localStorage.removeItem("initialStartTime");
+        localStorage.removeItem("status");
+        localStorage.removeItem("lastStatus");
+        localStorage.removeItem("pendingStopLog");
+        localStorage.removeItem("isStopPending");
+        localStorage.removeItem("stopCompleted"); // NEW: Clear the stop completed flag
+        lastStatus = "";
+    } else {
         console.error("Failed to log stop status.");
-        // Save the stop log details for a retry on the next start
-        const stopLogData = {
-            status: lastStatus,
-            duration: duration,
-            startTime: initialStartTime,
-            endTime: endTimeAtClick,
-            timestamp: stopTimestamp
-        };
-        localStorage.setItem("pendingStopLog", JSON.stringify(stopLogData));
-        console.log("Stop log saved for retry on next start:", stopLogData);
     }
 
-    lastStatus = "";
-
-    localStorage.removeItem("isRunning");
-    localStorage.removeItem("startTime");
-    localStorage.removeItem("initialStartTime");
-    localStorage.removeItem("status");
-    localStorage.removeItem("lastStatus");
-
     document.getElementById("timer").textContent = "00:00:00";
+    enableTimerButtons();
+    document.getElementById("logoutBtn").style.display = "inline-block";
+    document.getElementById("logoutBtn").disabled = false;
+}
 
-    // Enable all action buttons and history button after logStatus completes
+function displaySendingMessage() {
+    let sendingMessage = document.createElement("div");
+    sendingMessage.id = "sendingMessage";
+    sendingMessage.textContent = "Sending...";
+    sendingMessage.style.color = "blue";
+    const controlsDiv = document.getElementById("controls");
+    if (controlsDiv) {
+        controlsDiv.appendChild(sendingMessage);
+    } else {
+        console.error("displaySendingMessage: Could not find 'controls' div.");
+    }
+}
+
+function clearSendingMessage() {
+    const sendingMessage = document.getElementById("sendingMessage");
+    if (sendingMessage) {
+        sendingMessage.remove();
+    }
+}
+
+function disableTimerButtons() {
+    document.getElementById("breakBtn").disabled = true;
+    document.getElementById("lunchBtn").disabled = true;
+    document.getElementById("bioBtn").disabled = true;
+    document.getElementById("stopBtn").disabled = true;
+    document.getElementById("historyBtn").disabled = true;
+}
+
+function enableTimerButtons() {
     document.getElementById("breakBtn").disabled = false;
     document.getElementById("lunchBtn").disabled = false;
     document.getElementById("bioBtn").disabled = false;
+    document.getElementById("stopBtn").disabled = false;
     document.getElementById("historyBtn").disabled = false;
-    document.getElementById("logoutBtn").style.display = "inline-block"; // Make logout button visible again
-    document.getElementById("logoutBtn").disabled = false; // Enable logout after logging
 }
 
 function createTimerWarningElement() {
