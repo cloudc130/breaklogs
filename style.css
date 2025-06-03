@@ -13,6 +13,11 @@ button, input, h1, h2, td, th { /* Added table cells/headers */
    font-family: inherit; /* Makes these elements use the body font */
 }
 
+.status-active-color {
+    color: #4CAF50; /* Example color: a shade of green */
+    font-weight: bold; /* Make it bold for clarity */
+}
+
 .container {
     background: transparent; /* Make the container transparent */
     padding: 40px; /* Add some padding around the content */

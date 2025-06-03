@@ -557,27 +557,22 @@ async function startTimer(status) {
                 isRunning = true;
                 lastStatus = status;
 
+                const agentNameElement = document.getElementById("agentName");
+                const loggedInUserName = localStorage.getItem("loggedInUserName");
+                if (agentNameElement && loggedInUserName) {
+                    agentNameElement.innerHTML = `Hi, ${loggedInUserName}, you are currently on <span class="status-active-color">${status.charAt(0).toUpperCase() + status.slice(1)}</span>`;
+                }
+
+                // Hide break, lunch, and bio buttons
+                document.getElementById("breakBtn").style.display = "none";
+                document.getElementById("lunchBtn").style.display = "none";
+                document.getElementById("bioBtn").style.display = "none";
+
+                // Ensure stop and history buttons are visible (they usually are, but good to be explicit)
                 document.getElementById("stopBtn").style.display = "inline-block";
+                document.getElementById("historyBtn").style.display = "inline-block";
 
-                // Find the clicked button and update its text and color
-                if (status === "break") {
-                    activeButton = document.getElementById("breakBtn");
-                } else if (status === "lunch") {
-                    activeButton = document.getElementById("lunchBtn");
-                }
-                else if (status === "bio") {
-                    activeButton = document.getElementById("bioBtn");
-                }
-
-                if (activeButton) {
-                    activeButton.textContent = status.charAt(0).toUpperCase() + status.slice(1) + " - In Progress";
-                    activeButton.classList.add("active-status");
-                }
-
-                // Disable all action buttons and history button on timer start
-                document.getElementById("breakBtn").disabled = true;
-                document.getElementById("lunchBtn").disabled = true;
-                document.getElementById("bioBtn").disabled = true;
+                // Disable history button while logging is in progress (will be re-enabled later)
                 document.getElementById("historyBtn").disabled = true;
 
                 document.getElementById("logoutBtn").style.display = "none"; // Hide logout button on timer start
@@ -691,27 +686,22 @@ function restoreTimer() {
         warningTextElement.textContent = "";
     }
 
+    const agentNameElement = document.getElementById("agentName");
+    const loggedInUserName = localStorage.getItem("loggedInUserName");
+    if (agentNameElement && loggedInUserName) {
+        agentNameElement.innerHTML = `Hi, ${loggedInUserName}, you are currently on <span class="status-active-color">${savedStatus.charAt(0).toUpperCase() + savedStatus.slice(1)}</span>`;
+    }
+
+    // Hide break, lunch, and bio buttons
+    document.getElementById("breakBtn").style.display = "none";
+    document.getElementById("lunchBtn").style.display = "none";
+    document.getElementById("bioBtn").style.display = "none";
+
+    // Ensure stop and history buttons are visible
     document.getElementById("stopBtn").style.display = "inline-block";
-
-    // Update the button appearance based on the saved status
-    if (savedStatus === "break") {
-        activeButton = document.getElementById("breakBtn");
-    } else if (savedStatus === "lunch") {
-        activeButton = document.getElementById("lunchBtn");
-    } else if (savedStatus === "bio") {
-        activeButton = document.getElementById("bioBtn");
-    }
-
-    if (activeButton) {
-        activeButton.textContent = savedStatus.charAt(0).toUpperCase() + savedStatus.slice(1) + " - In Progress";
-        activeButton.classList.add("active-status");
-    }
-
-    // Gray out other buttons
-    document.getElementById("breakBtn").disabled = (savedStatus !== "break");
-    document.getElementById("lunchBtn").disabled = (savedStatus !== "lunch");
-    document.getElementById("bioBtn").disabled = (savedStatus !== "bio");
-    document.getElementById("logoutBtn").disabled = true
+    document.getElementById("historyBtn").style.display = "inline-block";
+    document.getElementById("historyBtn").disabled = false; // Ensure history is enabled after restoration
+    document.getElementById("logoutBtn").style.display = "none"; // Hide logout button
 
     // Remove the old status message if it exists
     let oldStatusMessage = document.getElementById("statusMessage");
@@ -824,13 +814,23 @@ async function stopTimer() {
     disableTimerButtons();
 
     if (activeButton) {
-        activeButton.textContent = activeButton.id.charAt(0).toUpperCase() + activeButton.id.slice(1, -3);
-        activeButton.classList.remove("active-status");
         activeButton = null;
     }
 
-    document.getElementById("logoutBtn").style.display = "none";
+    // Restore original welcome message
+    const agentNameElement = document.getElementById("agentName");
+    const loggedInUserName = localStorage.getItem("loggedInUserName");
+    if (agentNameElement && loggedInUserName) {
+        agentNameElement.textContent = "Welcome, " + loggedInUserName;
+    }
 
+    // Show break, lunch, and bio buttons
+    document.getElementById("breakBtn").style.display = "block"; // Assuming they are block-level for a list or flex items for column
+    document.getElementById("lunchBtn").style.display = "block";
+    document.getElementById("bioBtn").style.display = "block";
+
+    document.getElementById("logoutBtn").style.display = "inline-block";
+    
     localStorage.setItem("isStopPending", "true");
     localStorage.removeItem("stopCompleted"); // CLEAR the flag at the start of a new stop
 
