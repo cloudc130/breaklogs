@@ -543,7 +543,7 @@ async function startTimer(status) {
     // Attempt to resend any pending logs at the start of a new timer
     await resendPendingLogs();
 
-    const confirmationMessage = `Are you sure you want to start the <span class="dialog-status-text"><img src="${status}.png" alt="${status} icon" class="dialog-status-icon"> ${status.charAt(0).toUpperCase() + status.slice(1)}</span> timer?`;
+    const confirmationMessage = `Are you sure you want to start the <span class="dialog-status-text"><img src="${status}.png" alt="${status} icon" class="dialog-status-icon"> ${status.charAt(0).toUpperCase() + status.slice(1)} <img src="${status}.png" alt="${status} icon" class="dialog-status-icon"></span> timer?`;
 
 
     if (status === "break" || status === "lunch" || status === "bio") {
