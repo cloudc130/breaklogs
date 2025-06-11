@@ -39,7 +39,7 @@ function createCustomDialog(message, confirmCallback, cancelCallback) {
     dialog.className = 'custom-dialog';
 
     const messageElement = document.createElement('p');
-    messageElement.textContent = message;
+    messageElement.innerHTML = message; // <-- CHANGE THIS LINE
     dialog.appendChild(messageElement);
 
     const buttonContainer = document.createElement('div');
@@ -543,7 +543,8 @@ async function startTimer(status) {
     // Attempt to resend any pending logs at the start of a new timer
     await resendPendingLogs();
 
-    const confirmationMessage = `Are you sure you want to start the ${status} timer?`;
+    const confirmationMessage = `Are you sure you want to start the <span class="dialog-status-text"><img src="${status}.png" alt="${status} icon" class="dialog-status-icon"> ${status.charAt(0).toUpperCase() + status.slice(1)}</span> timer?`;
+
 
     if (status === "break" || status === "lunch" || status === "bio") {
         createCustomDialog(
@@ -814,6 +815,8 @@ async function stopTimer() {
     disableTimerButtons();
 
     if (activeButton) {
+        activeButton.querySelector('.button-text').textContent = activeButton.id.charAt(0).toUpperCase() + activeButton.id.slice(1, -3);
+        activeButton.classList.remove("active-status");
         activeButton = null;
     }
 
@@ -825,9 +828,9 @@ async function stopTimer() {
     }
 
     // Show break, lunch, and bio buttons
-    document.getElementById("breakBtn").style.display = "block"; // Assuming they are block-level for a list or flex items for column
-    document.getElementById("lunchBtn").style.display = "block";
-    document.getElementById("bioBtn").style.display = "block";
+    document.getElementById("breakBtn").style.display = "flex"; // Assuming they are block-level for a list or flex items for column
+    document.getElementById("lunchBtn").style.display = "flex";
+    document.getElementById("bioBtn").style.display = "flex";
 
     document.getElementById("logoutBtn").style.display = "inline-block";
     

@@ -85,6 +85,37 @@ button {
     text-align: left; /* Align button text to the left */
 }
 
+.timer-action-button {
+    display: flex; /* Makes the button a flex container */
+    align-items: center; /* This is the key: Vertically centers the icon and text */
+    justify-content: flex-start; /* Aligns content to the left */
+    gap: 10px; /* Adds space between the icon and the text (adjust as needed) */
+    /* Add any other button styles here if you want them to be specific to these action buttons */
+    padding: 10px 15px; /* Ensure consistent padding */
+    width: fit-content; /* Make button only as wide as its content (optional, or set a fixed width) */
+}
+
+/* Existing .button-icon, adjusted size */
+.button-icon {
+    width: 36px; /* Adjusted icon size, experiment to find what fits best */
+    height: 36px; /* Adjusted icon size */
+    /* No need for vertical-align when using flexbox on the parent */
+}
+
+.dialog-status-text {
+    color: #4CAF50; /* A distinct color, similar to .status-active-color */
+    font-size: 1.4em; /* Make the font size larger for clarity */
+    font-weight: bold; /* Make the text bold */
+    text-transform: capitalize; /* Ensure the first letter is capitalized */
+}
+
+/* Styles for the icon within the confirmation dialog */
+.dialog-status-icon {
+    width: 28px; /* Adjust icon size as needed */
+    height: 28px;
+    vertical-align: middle; /* Helps align the icon with the text */
+}
+
 button:hover {
     color: #00bcd4; /* Highlight on hover */
 }
