@@ -396,10 +396,13 @@ document.getElementById("loginBtn").addEventListener("click", async function() {
 });
 
 document.getElementById("historyBtn").addEventListener("click", async function() {
-    const historyUrl = `${apiUrl}?action=history&userId=${loggedInUserId}`;
+    // Disable all relevant buttons and inputs immediately
+    disableTimerButtons();
 
+    // Set history button specific loading text
     document.getElementById("historyBtn").textContent = "Loading...";
-    document.getElementById("historyBtn").disabled = true;
+
+    const historyUrl = `${apiUrl}?action=history&userId=${loggedInUserId}`;
 
     // Resend any pending logs before fetching history
     await resendPendingLogs();
@@ -407,19 +410,22 @@ document.getElementById("historyBtn").addEventListener("click", async function()
     try {
         const historyData = await fetchData(historyUrl);
 
-        document.getElementById("historyBtn").textContent = "History";
-        document.getElementById("historyBtn").disabled = false;
-
         if (historyData && historyData.success) { // Check if historyData is not null
             displayHistory(historyData.history);
             document.getElementById("historyDisplay").style.display = "block";
+            // The buttons will be re-enabled in the finally block
         } else {
+            // Assuming showAlert is a function that displays an alert or custom dialog
             showAlert("Error retrieving history.");
         }
     } catch (error) {
-        document.getElementById("historyBtn").textContent = "History";
-        document.getElementById("historyBtn").disabled = false;
-        // fetchData already handles error display, nothing to do here.
+        // Catch any network errors
+        console.error("Network error fetching history:", error);
+        showAlert("Network error retrieving history.");
+    } finally {
+        // This block runs whether the try or catch block finished
+        enableTimerButtons(); // Re-enable all relevant buttons and inputs
+        document.getElementById("historyBtn").textContent = "History"; // Set text back to "History"
     }
 });
 
@@ -897,6 +903,7 @@ function disableTimerButtons() {
     document.getElementById("bioBtn").disabled = true;
     document.getElementById("stopBtn").disabled = true;
     document.getElementById("historyBtn").disabled = true;
+    document.getElementById("logoutBtn").disabled = true; // Add this
 }
 
 function enableTimerButtons() {
@@ -905,6 +912,7 @@ function enableTimerButtons() {
     document.getElementById("bioBtn").disabled = false;
     document.getElementById("stopBtn").disabled = false;
     document.getElementById("historyBtn").disabled = false;
+    document.getElementById("logoutBtn").disabled = false; // Add this
 }
 
 function createTimerWarningElement() {
