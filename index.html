@@ -12,6 +12,87 @@
     <link rel="manifest" href="/site.webmanifest">
 </head>
 <body>
+    <script>
+        // --- Debugging: Check if the script runs ---
+        console.log("Browser detection script loaded.");
+
+        function isChrome() {
+            const userAgent = navigator.userAgent; // Get the user agent once
+            const isChromium = typeof window.chrome === 'object' && window.chrome !== null;
+            const isGoogleVendor = navigator.vendor === "Google Inc.";
+            const isOpera = userAgent.indexOf("Opera") !== -1 || userAgent.indexOf("OPR") !== -1;
+            const isEdge = userAgent.indexOf("Edg") !== -1;
+            const isBrave = typeof navigator.brave !== 'undefined';
+            // NEW: Check for Avast in the User-Agent string
+            const isAvast = userAgent.indexOf("Avast") !== -1 || userAgent.indexOf("AVG") !== -1; // Avast acquired AVG, so check both
+
+            // --- Debugging: Log individual checks ---
+            console.log("isChromium:", isChromium);
+            console.log("isGoogleVendor:", isGoogleVendor);
+            console.log("isOpera (should be false in Firefox):", isOpera);
+            console.log("isEdge (should be false in Firefox):", isEdge);
+            console.log("isBrave (should be false in Firefox):", isBrave);
+            // NEW: Log Avast check
+            console.log("isAvast:", isAvast);
+            console.log("navigator.userAgent:", userAgent); // Log the full User-Agent string
+
+            // This logic attempts to be more specific to Google Chrome
+            // It checks for Chromium engine AND Google vendor AND tries to exclude known non-Google Chromium browsers.
+            // NEW: Added !isAvast to the exclusion criteria
+            if (isChromium && isGoogleVendor && !isOpera && !isEdge && !isBrave && !isAvast) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        // Execute immediately when the script loads
+        const browserIsChrome = isChrome(); // Store the result of the function
+        console.log("Result of isChrome():", browserIsChrome); // --- Debugging: Log final result ---
+
+        if (!browserIsChrome) { // Use the stored result
+            console.log("Blocking non-Chrome browser!"); // --- Debugging: Confirm blocking branch entered ---
+
+            // 1. Immediately hide the body and prevent scrolling
+            document.body.style.display = 'none';
+            document.documentElement.style.overflow = 'hidden';
+            document.body.style.overflow = 'hidden';
+
+            // 2. Replace the entire HTML content with the warning message
+            document.documentElement.innerHTML = `
+                <div style="font-family: 'Courier New', Courier, monospace; background-color: #333333; color: #f0f0f0; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; text-align: center; padding: 20px;">
+                    <h1 style="color: #FF5722; margin-bottom: 20px;">Unsupported Browser Detected!</h1>
+                    <p style="font-size: 1.2em; max-width: 600px;">
+                        This application is designed to run specifically in <strong>Google Chrome</strong> for optimal performance and compatibility.
+                    </p>
+                    <p style="font-size: 1.2em; max-width: 600px;">
+                        Please open this page using Google Chrome to proceed.
+                    </p>
+                    <p style="font-size: 0.9em; margin-top: 30px;">
+                        If you believe this is an error, please ensure your browser's User-Agent is not modified.
+                    </p>
+                </div>
+            `;
+
+            // 3. Crucial: Stop further loading of resources and parsing of the original document
+            if (window.stop) { // Standard method for modern browsers
+                window.stop();
+            } else if (document.execCommand) { // Fallback for older IE
+                try {
+                    document.execCommand("Stop");
+                } catch (e) {
+                    // Ignore errors if command is not supported or causes issues
+                }
+            }
+
+            // We still throw an error to halt the *current* script's execution flow
+            // and prevent any subsequent code within this script block from running.
+            throw new Error("Unsupported browser detected. Page load stopped.");
+
+        } else {
+            console.log("Browser is detected as Chrome. Page loading normally.");
+        }
+    </script>
     <div class="container">
 <div id="timer-section">
     <img src="images.png" alt="Company Logo" id="companyLogo"> <h1 style="margin-bottom: 10px;">Agent Break Tracker</h1>
