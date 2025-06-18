@@ -21,12 +21,69 @@ button, input, h1, h2, td, th { /* Added table cells/headers */
 .container {
     background: transparent; /* Make the container transparent */
     padding: 40px; /* Add some padding around the content */
-    border-radius: 12px; /* Keep some rounded corners if desired */
     /* box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); Optional: subtle shadow */
     max-width: 900px; /* Adjust as needed for the overall width */
     width: 90%; /* Take up 90% of the screen width on smaller devices */
     display: flex; /* Arrange timer, buttons, and login horizontally */
     align-items: center; /* Vertically align items within the container */
+    position: relative; /* Required for absolute positioning of pseudo-element */
+    overflow: hidden; /* Hides the part of the line that's off-screen */
+    border: 1px solid transparent; /* Ensure a transparent border always exists */
+    min-height: 200px; /* Example */
+    justify-content: center; /* Center content horizontally within container */
+}
+
+
+/* Style for the SVG container */
+.border-loading-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Allows clicks on elements underneath */
+    z-index: 10;
+    opacity: 0; /* Hidden by default */
+    transition: opacity 0.3s ease; /* Smooth fade in/out */
+}
+
+/* Style for the SVG path/rect */
+.border-path {
+    fill: none; /* Explicitly no fill */
+    stroke: white; /* Color of the moving line */
+    stroke-width: 0.5; /* THICKNESS: Changed from 3 to 2 */
+    stroke-linecap: butt; /* Makes the ends of the 'snake' rounded */
+    stroke-linejoin: miter; /* Makes corners smoother for the 'snake' */
+
+    /* These will be animated to create the snake effect */
+    /* dasharray defines the length of the visible segment and the invisible gap */
+    /* dashoffset moves that entire pattern along the path */
+    stroke-dasharray: 60 400; /* Snake segment length (40) and a large gap (400) */
+    stroke-dashoffset: 440; /* Start with the snake off-screen */
+
+    animation: none; /* No animation by default */
+}
+
+/* Class to activate the animation */
+.loading-active .border-loading-svg {
+    opacity: 1; /* Make SVG visible */
+}
+
+.loading-active .border-path {
+    /* Animating stroke-dashoffset will make the snake move */
+    /* The animation duration determines speed */
+    /* 'linear' for constant speed, 'infinite' for continuous loop */
+    animation: snake-around 2.5s linear infinite; /* Adjust 2s for desired speed */
+}
+
+/* Keyframe animation for the "snake" effect */
+@keyframes snake-around {
+    from {
+        stroke-dashoffset: 440; /* Start with the snake just off the path */
+    }
+    to {
+        stroke-dashoffset: 0; /* Move the snake segment around the entire path */
+    }
 }
 
 #timer-section {

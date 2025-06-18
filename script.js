@@ -28,6 +28,17 @@ function getDeviceType() {
     }
 }
 
+function toggleLoading(isLoading) {
+    const container = document.querySelector('.container');
+    if (container) {
+        if (isLoading) {
+            container.classList.add('loading-active');
+        } else {
+            container.classList.remove('loading-active');
+        }
+    }
+}
+
 // Function to create a custom dialog
 function createCustomDialog(message, confirmCallback, cancelCallback) {
     const overlay = document.createElement('div');
@@ -281,6 +292,7 @@ document.getElementById('passwordToggle').addEventListener('click', function() {
 
 async function fetchData(url, retryCount = 3) {
     let attempts = 0;
+    toggleLoading(true); // Start loading animation
     while (attempts < retryCount) {
         try {
             attempts++;
@@ -307,6 +319,7 @@ async function fetchData(url, retryCount = 3) {
             }
         }
     }
+    toggleLoading(false); // Stop loading animation after logging attempt
     return null; // Return null if all retries fail
 }
 
@@ -425,6 +438,7 @@ document.getElementById("historyBtn").addEventListener("click", async function()
     } finally {
         // This block runs whether the try or catch block finished
         enableTimerButtons(); // Re-enable all relevant buttons and inputs
+        toggleLoading(false); // Stop loading animation after logging attempt
         document.getElementById("historyBtn").textContent = "History"; // Set text back to "History"
     }
 });
@@ -532,6 +546,7 @@ async function resendPendingLogs() {
         );
         if (stopSuccess) {
             localStorage.removeItem("pendingStopLog");
+            localStorage.removeItem("pendingStartLog")
             localStorage.removeItem("retryScheduled"); // Clean up retry flag if it exists
             console.log("Pending stop log resent successfully!");
             showAlert("Pending stop log resent successfully!");
@@ -953,6 +968,7 @@ async function logStatus(status, duration = "", startTimeOverride = null, endTim
         currentLogData.duration = duration;
     }
 
+    toggleLoading(true); // Start loading animation
     while (attempts < retryCount) {
         try {
             attempts++;
@@ -979,6 +995,7 @@ async function logStatus(status, duration = "", startTimeOverride = null, endTim
     }
 
     successIndicator.remove();
+    toggleLoading(false); // Stop loading animation after logging attempt
 
     if (isSuccess) {
         let successMessage = document.createElement("div");
