@@ -266,6 +266,8 @@ function showScheduleUpdateDialog() {
             updateButton.textContent = "Update Schedule";
             updateButton.disabled = false;
             showAlert("Error communicating with the server to update schedule.");
+        } finally {
+        toggleLoading(false); // Stop loading animation after logging attempt
         }
     });
 }
@@ -405,6 +407,8 @@ document.getElementById("loginBtn").addEventListener("click", async function() {
         document.getElementById("loginBtn").disabled = false;
         timerDisplay.style.display = "none";
         // fetchData already handles error display.
+    } finally {
+        toggleLoading(false); // Stop loading animation after logging attempt
     }
 });
 
