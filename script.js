@@ -529,6 +529,9 @@ async function resendPendingLogs() {
         );
         if (startSuccess) {
             localStorage.removeItem("pendingStartLog");
+            localStorage.removeItem("startTime");
+            localStorage.removeItem("initialStartTime");
+            localStorage.removeItem("failedStartLog");
             console.log("Pending start log resent successfully!");
             showAlert("Pending start log resent successfully!");
         } else {
@@ -550,16 +553,23 @@ async function resendPendingLogs() {
         );
         if (stopSuccess) {
             localStorage.removeItem("pendingStopLog");
-            localStorage.removeItem("pendingStartLog")
             localStorage.removeItem("retryScheduled"); // Clean up retry flag if it exists
-            console.log("Pending stop log resent successfully!");
+            // NEW: Clear all active timer state variables as the stop log was successfully sent.
+            localStorage.removeItem("isRunning");
+            localStorage.removeItem("startTime");
+            localStorage.removeItem("initialStartTime");
+            localStorage.removeItem("status");
+            localStorage.removeItem("lastStatus");
+            localStorage.removeItem("isStopPending"); // Also clear this flag
+            localStorage.removeItem("stopCompleted"); // Ensure this is also cleared
+            console.log("Pending stop log resent successfully and timer state cleared!");
             showAlert("Pending stop log resent successfully!");
         } else {
             console.error("Failed to resend pending stop log.");
             showAlert("Failed to resend pending stop log.");
         }
     }
-    localStorage.removeItem("retryScheduled"); // Ensure retry flag is cleared after attempt
+    localStorage.removeItem("retryScheduled"); // Ensure retry flag is cleared after attempt, even if both fail
 }
 
 async function startTimer(status) {
