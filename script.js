@@ -4,7 +4,7 @@ let initialStartTime; // To store the very first start time
 let stopTime; // To store the exact stop time
 let isRunning = false;
 let loggedInUserId = "";
-const apiUrl = "https://script.google.com/macros/s/AKfycbz9huQLWfKbiwWuX8t_IxSjrIQFkEIGniaUYI362Gpoq2tzCUYRHO1nCRI9s-6vqbcmfw/exec";
+const apiUrl = "https://script.google.com/macros/s/AKfycbzMNj7x5P80swdCE3XUWktkPoWoaNEBL4ZMTw4EXH3-2HL8rp3ewDMfrR63UlCDwtFoMA/exec";
 let lastStatus = "";
 let lastAlertTime = 0;
 let failedStartLog = null; // Add this line
@@ -971,6 +971,24 @@ async function logStatus(status, duration = "", startTimeOverride = null, endTim
         timestamp: timestampOverride ? timestampOverride : new Date(Date.now() + (8 * 60 * 60 * 1000)).toISOString().replace("T", " ").split(".")[0]
     };
     console.log("Current Log Data Timestamp:", currentLogData.timestamp); // DEBUG LOG
+
+    const savedBreakDuration = localStorage.getItem("breakDuration");
+    const savedLunchDuration = localStorage.getItem("lunchDuration");
+
+    // Retrieve break and lunch durations from localStorage
+    // Conditionally update expectedDurationMinutes only for break and lunch
+    if (status.includes("break")) {
+        let parsedDuration = parseInt(savedBreakDuration, 10);
+        currentLogData.expectedDurationMinutes = isNaN(parsedDuration) ? 0 : parsedDuration;
+    } else if (status.includes("lunch")) {
+        let parsedDuration = parseInt(savedLunchDuration, 10);
+        currentLogData.expectedDurationMinutes = isNaN(parsedDuration) ? 0 : parsedDuration;
+    } else if (status.includes("bio")) {
+        currentLogData.expectedDurationMinutes = 0;
+    }
+
+    // NEW: Debug log to confirm the expectedDurationMinutes being sent
+    console.log("Debug - Expected Duration for Status '" + status + "':", currentLogData.expectedDuration);
 
     if (startTimeOverride) {
         currentLogData.startTime = new Date(startTimeOverride).toISOString().replace("T", " ").split(".")[0];
