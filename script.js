@@ -1182,6 +1182,56 @@ document.getElementById("exportHistoryBtn").addEventListener("click", () => {
     );
 });
 
+function getCurrentAppVersion() {
+    const metaTag = document.querySelector('meta[name="app-version"]');
+    return metaTag ? metaTag.content : null;
+}
+
+// Function to fetch the latest app version from the server
+async function fetchLatestAppVersion() {
+    try {
+        // Fetch index.html itself (or a small version.json file if you created one)
+        // By fetching index.html, we ensure we get the latest meta tag content.
+        const response = await fetch('/', { cache: 'no-store' }); // Ensure no caching for this fetch
+        const html = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const latestMetaTag = doc.querySelector('meta[name="app-version"]');
+        return latestMetaTag ? latestMetaTag.content : null;
+    } catch (error) {
+        console.error('Failed to fetch latest app version:', error);
+        return null;
+    }
+}
+
+// Function to check for updates and refresh if necessary
+async function checkForUpdatesAndRefresh() {
+    const currentVersion = getCurrentAppVersion();
+    const latestVersion = await fetchLatestAppVersion();
+
+    console.log('Current App Version:', currentVersion);
+    console.log('Latest App Version:', latestVersion);
+
+    if (currentVersion && latestVersion && currentVersion !== latestVersion) {
+        console.log('New app version detected! Reloading page...');
+        // Optional: Show a user-friendly message before reloading
+        showAlert("A new version of the application is available. Refreshing page...", 5000);
+        location.reload(true); // Forces a full reload, bypassing cache
+    } else {
+        console.log('App is up to date.');
+    }
+}
+
+// Set up periodic check (e.g., every 5 minutes)
+// Adjust the interval as needed. Too frequent can consume bandwidth.
+const CHECK_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
+
+// Run immediately on load and then periodically
+document.addEventListener('DOMContentLoaded', () => {
+    checkForUpdatesAndRefresh(); // Check once on page load
+    setInterval(checkForUpdatesAndRefresh, CHECK_INTERVAL_MS);
+});
+
 function displayHistory(history) {
     let tableBody = document.getElementById("historyTable").getElementsByTagName("tbody")[0];
     tableBody.innerHTML = "";
