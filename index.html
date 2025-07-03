@@ -14,9 +14,7 @@
 </head>
 <body>
     <script>
-        // --- Debugging: Check if the script runs ---
-        console.log("Browser detection script loaded.");
-
+        
         function isChrome() {
             const userAgent = navigator.userAgent; // Get the user agent once
             const isChromium = typeof window.chrome === 'object' && window.chrome !== null;
@@ -27,16 +25,6 @@
             // NEW: Check for Avast in the User-Agent string
             const isAvast = userAgent.indexOf("Avast") !== -1 || userAgent.indexOf("AVG") !== -1; // Avast acquired AVG, so check both
 
-            // --- Debugging: Log individual checks ---
-            console.log("isChromium:", isChromium);
-            console.log("isGoogleVendor:", isGoogleVendor);
-            console.log("isOpera (should be false in Firefox):", isOpera);
-            console.log("isEdge (should be false in Firefox):", isEdge);
-            console.log("isBrave (should be false in Firefox):", isBrave);
-            // NEW: Log Avast check
-            console.log("isAvast:", isAvast);
-            console.log("navigator.userAgent:", userAgent); // Log the full User-Agent string
-
             // This logic attempts to be more specific to Google Chrome
             // It checks for Chromium engine AND Google vendor AND tries to exclude known non-Google Chromium browsers.
             // NEW: Added !isAvast to the exclusion criteria
@@ -46,13 +34,10 @@
                 return false;
             }
         }
-
         // Execute immediately when the script loads
         const browserIsChrome = isChrome(); // Store the result of the function
-        console.log("Result of isChrome():", browserIsChrome); // --- Debugging: Log final result ---
-
+  
         if (!browserIsChrome) { // Use the stored result
-            console.log("Blocking non-Chrome browser!"); // --- Debugging: Confirm blocking branch entered ---
 
             // 1. Immediately hide the body and prevent scrolling
             document.body.style.display = 'none';
@@ -90,9 +75,8 @@
             // and prevent any subsequent code within this script block from running.
             throw new Error("Unsupported browser detected. Page load stopped.");
 
-        } else {
-            console.log("Browser is detected as Chrome. Page loading normally.");
         }
+
     </script>
     <div class="container">
         <svg class="border-loading-svg" width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
