@@ -508,6 +508,9 @@ document.addEventListener("DOMContentLoaded", async function () {
         agentNameH2.textContent = "";
         timerDisplay.style.display = "none";
     }
+    // --- NEW: Add Auto-Update Logic Calls Here ---
+    checkForUpdatesAndRefresh(); // Check once on page load
+    setInterval(checkForUpdatesAndRefresh, CHECK_INTERVAL_MS);
 });
 
 let activeButton = null; // Store reference to the active button
@@ -1223,14 +1226,8 @@ async function checkForUpdatesAndRefresh() {
 }
 
 // Set up periodic check (e.g., every 5 minutes)
-// Adjust the interval as needed. Too frequent can consume bandwidth.
+// // Adjust the interval as needed. Too frequent can consume bandwidth.
 const CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
-
-// Run immediately on load and then periodically
-document.addEventListener('DOMContentLoaded', () => {
-    checkForUpdatesAndRefresh(); // Check once on page load
-    setInterval(checkForUpdatesAndRefresh, CHECK_INTERVAL_MS);
-});
 
 function displayHistory(history) {
     let tableBody = document.getElementById("historyTable").getElementsByTagName("tbody")[0];
