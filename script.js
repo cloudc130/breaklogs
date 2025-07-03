@@ -1224,7 +1224,7 @@ async function checkForUpdatesAndRefresh() {
 
 // Set up periodic check (e.g., every 5 minutes)
 // Adjust the interval as needed. Too frequent can consume bandwidth.
-const CHECK_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
+const CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
 // Run immediately on load and then periodically
 document.addEventListener('DOMContentLoaded', () => {
