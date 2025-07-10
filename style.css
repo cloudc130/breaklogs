@@ -560,6 +560,12 @@ input, .password-toggle {
     font-size: 0.9em;
 }
 
+.small-duration-input {
+    width: 70px; /* Adjust this value as needed */
+    padding: 5px; /* Make sure padding looks good too */
+    box-sizing: border-box; /* Include padding in the width calculation */
+}
+
 .overlay {
     position: fixed;
     top: 0;

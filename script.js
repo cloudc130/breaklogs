@@ -208,16 +208,19 @@ function showScheduleUpdateDialog() {
     const optionVosker = document.createElement('option');
     optionVosker.value = 'vosker';
     optionVosker.textContent = 'Vosker (30m Break, 30m Lunch)';
+    optionVosker.style.fontWeight = 'bold'; // <--- Add this line for bolding
     durationPresetSelect.appendChild(optionVosker);
 
     const optionRegular = document.createElement('option');
     optionRegular.value = 'regular';
     optionRegular.textContent = 'Regular (15m Break, 60m Lunch)';
+    optionRegular.style.fontWeight = 'bold'; // <--- Add this line for bolding
     durationPresetSelect.appendChild(optionRegular);
 
     const optionCustom = document.createElement('option');
     optionCustom.value = 'custom';
     optionCustom.textContent = 'Custom Duration';
+    optionCustom.style.fontStyle = 'italic'; // <--- Add this line for italic
     durationPresetSelect.appendChild(optionCustom);
 
     // --- NEW: Custom Duration Input Fields (initially hidden) ---
@@ -231,7 +234,8 @@ function showScheduleUpdateDialog() {
     customBreakInput.type = 'number';
     customBreakInput.id = 'dialogCustomBreakDuration';
     customBreakInput.min = '0';
-    customBreakInput.placeholder = 'e.g., 15';
+    customBreakInput.placeholder = '15';
+    customBreakInput.className = 'small-duration-input'; // <-- ADD THIS LINE
 
     const customLunchLabel = document.createElement('label');
     customLunchLabel.textContent = "Custom Lunch Duration (minutes):";
@@ -239,7 +243,8 @@ function showScheduleUpdateDialog() {
     customLunchInput.type = 'number';
     customLunchInput.id = 'dialogCustomLunchDuration';
     customLunchInput.min = '0';
-    customLunchInput.placeholder = 'e.g., 30';
+    customLunchInput.placeholder = '30';
+    customLunchInput.className = 'small-duration-input'; // <-- ADD THIS LINE
 
     customDurationsDiv.appendChild(customBreakLabel);
     customDurationsDiv.appendChild(customBreakInput);
