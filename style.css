@@ -553,6 +553,13 @@ input, .password-toggle {
     color: #f44336;
 }
 
+.version-text {
+    color: #00bcd4; /* Example: A nice blue color */
+    /* You can add other styles too, like: */
+    font-weight: bold;
+    font-size: 0.9em;
+}
+
 .overlay {
     position: fixed;
     top: 0;

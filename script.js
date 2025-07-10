@@ -109,8 +109,16 @@ function showAboutDialog() {
     header.textContent = "Mabrox Agent Break Tracker";
     dialog.appendChild(header);
 
+    // Add a paragraph for the app name and description
+    const appInfoParagraph = document.createElement('p');
+    appInfoParagraph.innerHTML = "<strong>Agent Break Tracker</strong><br>Keep track of your breaks and lunch efficiently.";
+    dialog.appendChild(appInfoParagraph);
+
+    // --- MODIFICATION HERE ---
     const versionParagraph = document.createElement('p');
-    versionParagraph.textContent = "Version: 69.0";
+    versionParagraph.className = 'version-text'; // <--- Add this line to apply the class
+    const currentAppVersion = getCurrentAppVersion(); // Get the current version dynamically
+    versionParagraph.textContent = `Version: ${currentAppVersion || 'N/A'}`; // Display it. Use 'N/A' as a fallback.
     dialog.appendChild(versionParagraph);
 
     const developedByParagraph = document.createElement('p');
@@ -171,6 +179,7 @@ function showScheduleUpdateDialog() {
     header.textContent = "To use the Agent Break Tracker please update your schedule";
     dialog.appendChild(header);
 
+    // Shift Start and Shift End (remain the same)
     const shiftStartLabel = document.createElement('label');
     shiftStartLabel.textContent = "Shift Start:";
     const shiftStartInput = document.createElement('input');
@@ -183,31 +192,59 @@ function showScheduleUpdateDialog() {
     shiftEndInput.type = 'time';
     shiftEndInput.id = 'dialogShiftEnd';
 
-    const breakDurationLabel = document.createElement('label');
-    breakDurationLabel.textContent = "Default Break Duration:";
-    const breakDurationSelect = document.createElement('select');
-    breakDurationSelect.id = 'dialogBreakDuration';
-    const breakOption15 = document.createElement('option');
-    breakOption15.value = '15';
-    breakOption15.textContent = '15 minutes';
-    const breakOption30 = document.createElement('option');
-    breakOption30.value = '30';
-    breakOption30.textContent = '30 minutes';
-    breakDurationSelect.appendChild(breakOption15);
-    breakDurationSelect.appendChild(breakOption30);
+    // --- NEW: Duration Preset Selection ---
+    const durationPresetLabel = document.createElement('label');
+    durationPresetLabel.textContent = "Choose Break/Lunch Preset:";
+    const durationPresetSelect = document.createElement('select');
+    durationPresetSelect.id = 'dialogDurationPreset';
 
-    const lunchDurationLabel = document.createElement('label');
-    lunchDurationLabel.textContent = "Default Lunch Duration:";
-    const lunchDurationSelect = document.createElement('select');
-    lunchDurationSelect.id = 'dialogLunchDuration';
-    const lunchOption30 = document.createElement('option');
-    lunchOption30.value = '30';
-    lunchOption30.textContent = '30 minutes';
-    const lunchOption60 = document.createElement('option');
-    lunchOption60.value = '60';
-    lunchOption60.textContent = '60 minutes';
-    lunchDurationSelect.appendChild(lunchOption30);
-    lunchDurationSelect.appendChild(lunchOption60);
+    const optionDefault = document.createElement('option');
+    optionDefault.value = '';
+    optionDefault.textContent = 'Select an option';
+    optionDefault.selected = true;
+    optionDefault.disabled = true; // Make default option unselectable
+    durationPresetSelect.appendChild(optionDefault);
+
+    const optionVosker = document.createElement('option');
+    optionVosker.value = 'vosker';
+    optionVosker.textContent = 'Vosker (30m Break, 30m Lunch)';
+    durationPresetSelect.appendChild(optionVosker);
+
+    const optionRegular = document.createElement('option');
+    optionRegular.value = 'regular';
+    optionRegular.textContent = 'Regular (15m Break, 60m Lunch)';
+    durationPresetSelect.appendChild(optionRegular);
+
+    const optionCustom = document.createElement('option');
+    optionCustom.value = 'custom';
+    optionCustom.textContent = 'Custom Duration';
+    durationPresetSelect.appendChild(optionCustom);
+
+    // --- NEW: Custom Duration Input Fields (initially hidden) ---
+    const customDurationsDiv = document.createElement('div');
+    customDurationsDiv.id = 'customDurationsContainer';
+    customDurationsDiv.style.display = 'none'; // Hidden by default
+
+    const customBreakLabel = document.createElement('label');
+    customBreakLabel.textContent = "Custom Break Duration (minutes):";
+    const customBreakInput = document.createElement('input');
+    customBreakInput.type = 'number';
+    customBreakInput.id = 'dialogCustomBreakDuration';
+    customBreakInput.min = '0';
+    customBreakInput.placeholder = 'e.g., 15';
+
+    const customLunchLabel = document.createElement('label');
+    customLunchLabel.textContent = "Custom Lunch Duration (minutes):";
+    const customLunchInput = document.createElement('input');
+    customLunchInput.type = 'number';
+    customLunchInput.id = 'dialogCustomLunchDuration';
+    customLunchInput.min = '0';
+    customLunchInput.placeholder = 'e.g., 30';
+
+    customDurationsDiv.appendChild(customBreakLabel);
+    customDurationsDiv.appendChild(customBreakInput);
+    customDurationsDiv.appendChild(customLunchLabel);
+    customDurationsDiv.appendChild(customLunchInput);
 
     const updateButton = document.createElement('button');
     updateButton.textContent = 'Update Schedule';
@@ -218,22 +255,54 @@ function showScheduleUpdateDialog() {
     dialog.appendChild(shiftStartInput);
     dialog.appendChild(shiftEndLabel);
     dialog.appendChild(shiftEndInput);
-    dialog.appendChild(breakDurationLabel);
-    dialog.appendChild(breakDurationSelect);
-    dialog.appendChild(lunchDurationLabel);
-    dialog.appendChild(lunchDurationSelect);
+    dialog.appendChild(durationPresetLabel); // Append the preset select
+    dialog.appendChild(durationPresetSelect);
+    dialog.appendChild(customDurationsDiv); // Append the container for custom fields
     dialog.appendChild(updateButton);
 
     document.body.appendChild(dialog);
 
+    // --- NEW: Event listener for preset selection to show/hide custom fields ---
+    durationPresetSelect.addEventListener('change', () => {
+        if (durationPresetSelect.value === 'custom') {
+            customDurationsDiv.style.display = 'block';
+        } else {
+            customDurationsDiv.style.display = 'none';
+        }
+    });
+
     updateButton.addEventListener('click', async () => {
         const shiftStart = document.getElementById('dialogShiftStart').value;
         const shiftEnd = document.getElementById('dialogShiftEnd').value;
-        const breakDuration = document.getElementById('dialogBreakDuration').value;
-        const lunchDuration = document.getElementById('dialogLunchDuration').value;
+        const selectedPreset = document.getElementById('dialogDurationPreset').value;
 
-        if (!shiftStart || !shiftEnd || !breakDuration || !lunchDuration) {
-            showAlert("Please enter all schedule details.");
+        let breakDuration, lunchDuration;
+
+        // Determine break and lunch durations based on preset or custom input
+        if (selectedPreset === 'vosker') {
+            breakDuration = '30';
+            lunchDuration = '30';
+        } else if (selectedPreset === 'regular') {
+            breakDuration = '15';
+            lunchDuration = '60';
+        } else if (selectedPreset === 'custom') {
+            breakDuration = document.getElementById('dialogCustomBreakDuration').value;
+            lunchDuration = document.getElementById('dialogCustomLunchDuration').value;
+
+            // Validate custom inputs
+            if (!breakDuration || !lunchDuration || isNaN(breakDuration) || isNaN(lunchDuration) || parseInt(breakDuration) < 0 || parseInt(lunchDuration) < 0) {
+                showAlert("Please enter valid positive numbers for custom break and lunch durations.");
+                return;
+            }
+        } else {
+            // This covers the case where "Select an option" is still selected
+            showAlert("Please select a break/lunch duration preset or custom option.");
+            return;
+        }
+
+        // Validate shift times and combined duration selection
+        if (!shiftStart || !shiftEnd) {
+            showAlert("Please enter your Shift Start and Shift End times.");
             return;
         }
 
@@ -260,14 +329,14 @@ function showScheduleUpdateDialog() {
                 timerDisplay.style.display = "block";
                 timerDisplay.textContent = "00:00:00";
             } else {
-                showAlert("Error updating schedule.");
+                showAlert("Error updating schedule: " + (updateResult ? updateResult.message : "Unknown error"));
             }
         } catch (error) {
             updateButton.textContent = "Update Schedule";
             updateButton.disabled = false;
             showAlert("Error communicating with the server to update schedule.");
         } finally {
-        toggleLoading(false); // Stop loading animation after logging attempt
+            toggleLoading(false); // Stop loading animation after logging attempt
         }
     });
 }
