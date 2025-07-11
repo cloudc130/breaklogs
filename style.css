@@ -516,7 +516,7 @@ input, .password-toggle {
     color: #f0f0f0;
     padding: 25px;
     border: 1px solid #555555;
-    z-index: 1000;
+    z-index: 1006;
     border-radius: 12px;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
     min-width: 300px; /* Ensure a minimum width */
