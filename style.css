@@ -330,7 +330,7 @@ input, .password-toggle {
     padding: 25px;
     border-radius: 12px;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
-    z-index: 1000;
+    z-index: 1006;
     max-height: 80vh;
     overflow-y: auto;
     width: 90%;
@@ -397,7 +397,7 @@ input, .password-toggle {
     color: #f0f0f0;
     padding: 25px;
     border: 1px solid #555555;
-    z-index: 1000;
+    z-index: 1006;
     border-radius: 12px;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
     min-width: 300px; /* Ensure a minimum width */
@@ -452,7 +452,7 @@ input, .password-toggle {
     color: #f0f0f0;
     padding: 25px;
     border: 1px solid #555555;
-    z-index: 1000;
+    z-index: 1006;
     border-radius: 12px;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
     min-width: 300px;
@@ -500,7 +500,6 @@ input, .password-toggle {
     cursor: pointer;
     font-size: 1em;
     transition: color 0.2s ease, border-color 0.2s ease;
-    margin-top: 20px; /* Add some space above the button */
 }
 
 #dialogUpdateScheduleBtn:hover {
@@ -566,6 +565,134 @@ input, .password-toggle {
     box-sizing: border-box; /* Include padding in the width calculation */
 }
 
+.settings-container {
+    position: absolute;
+    top: 10px; /* Adjust as needed */
+    right: 10px; /* Adjust as needed */
+    z-index: 1000; /* Ensure it's on top */
+}
+
+.settings-button {
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 24px;
+    color: #f0f0f0; /* CHANGE THIS LINE: Use a light color that stands out against #333333 */
+    /* You had a duplicate 'color: white;' above, remove that or comment it out if it's still there */
+    padding: 5px;
+    border-radius: 5px;
+    transition: color 0.2s ease-in-out, background-color 0.2s ease-in-out;
+    display: block;
+}
+
+.settings-button:hover {
+    color: #00bcd4; /* This is the color on hover, which you want to keep */
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.settings-menu {
+    display: none; /* Hidden by default */
+    position: absolute;
+    top: 40px; /* Position below the button, adjust as needed */
+    right: 0;
+    background-color: #2a2a2a; /* Darker background to blend with body but still distinct */
+    border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle light border */
+    border-radius: 5px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5); /* Darker, more pronounced shadow */
+    min-width: 150px; /* Adjust width as needed */
+    z-index: 1001; /* Higher than button */
+    padding: 5px 0; /* Padding inside the menu */
+}
+
+.settings-menu-item {
+    display: block;
+    width: 100%;
+    padding: 10px 15px;
+    text-align: left;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    color: #f0f0f0; /* Light text color to be visible on the dark menu background */
+    transition: background-color 0.2s ease;
+}
+
+.settings-menu-item:hover {
+    background-color: #444444; /* Slightly lighter dark background on hover for subtle highlight */
+    /* You could also use: background-color: rgba(255, 255, 255, 0.1); for a semi-transparent highlight */
+}
+
+.dialog-modal {
+    display: none; /* Hidden by default */
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #222; /* Dark modal background */
+    color: #f0f0f0;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    z-index: 1006; /* Ensure it's on top of the overlay and other elements */
+    max-height: 80vh;
+    overflow-y: auto;
+    width: 90%;
+    max-width: 450px; /* Adjust width as needed */
+    text-align: center; /* Center text within the modal */
+}
+
+.dialog-modal h2 {
+    color: #f0f0f0;
+    margin-bottom: 15px;
+}
+
+.dialog-input {
+    width: calc(100% - 20px); /* Adjust width considering padding */
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #555;
+    border-radius: 5px;
+    background-color: #333;
+    color: #f0f0f0;
+    box-sizing: border-box; /* Include padding in width calculation */
+}
+
+.dialog-buttons {
+    margin-top: 20px;
+    display: flex;
+    justify-content: space-around; /* Distribute buttons */
+    gap: 10px; /* Space between buttons */
+}
+
+.dialog-button {
+    background: none;
+    color: #f0f0f0;
+    border: 1px solid #555;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: color 0.3s ease, border-color 0.3s ease;
+    flex-grow: 1; /* Make buttons grow to fill space */
+}
+
+.dialog-button.confirm {
+    border-color: #00bcd4;
+    color: #00bcd4;
+}
+
+.dialog-button.confirm:hover {
+    background-color: rgba(0, 188, 212, 0.1);
+}
+
+.dialog-button.cancel {
+    border-color: #f44336;
+    color: #f44336;
+}
+
+.dialog-button.cancel:hover {
+    background-color: rgba(244, 67, 54, 0.1);
+}
+
 .overlay {
     position: fixed;
     top: 0;
@@ -573,6 +700,6 @@ input, .password-toggle {
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.7); /* Dark overlay */
-    z-index: 999;
+    z-index: 1005;
     display: none;
 }

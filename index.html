@@ -98,6 +98,14 @@
             </div>
             <button id="loginBtn">Login</button>
             <div id="controls">
+               <div class="settings-container">
+                 <button id="settingsBtn" class="settings-button" title="Settings">
+                    &#9881; </button>
+                 <div id="settingsMenu" class="settings-menu">
+                    <button id="resetScheduleBtn" class="settings-menu-item">Reset Schedule</button>
+                    <button id="resetPasswordMenuItem" class="settings-menu-item">Reset Password</button>
+                    </div>
+                </div>
                 <h2 id="agentName" style="margin-top: 20px; margin-bottom: 10px;"></h2>
                 <button id="breakBtn" class="timer-action-button">
                   <img src="break.png" alt="Break Icon" class="button-icon">
@@ -134,6 +142,31 @@
                 <tbody></tbody>
             </table>
             <button id="exportHistoryBtn">Export</button> <button id="closeHistoryBtn">Close</button>
+        </div>
+            <div id="resetPasswordDialog" class="dialog-modal">
+        <div class="dialog-content">
+            <h2 id="resetPasswordDialogTitle">Reset Password</h2>
+
+            <div id="resetPasswordOldSection">
+                <p>Please enter your old password to proceed:</p>
+                <input type="password" id="oldPasswordField" placeholder="Old Password" class="dialog-input">
+                <p class="error-message" id="oldPasswordError" style="display: none; color: red; font-size: 0.8em; margin-top: 5px;"></p>
+                <div class="dialog-buttons">
+                    <button id="resetPasswordConfirmOldBtn" class="dialog-button confirm">Confirm</button>
+                    <button id="resetPasswordCancelBtn" class="dialog-button cancel">Cancel</button>
+                </div>
+            </div>
+
+            <div id="resetPasswordNewSection" style="display: none;">
+                <p>Enter your new password:</p>
+                <input type="password" id="newPasswordField" placeholder="New Password" class="dialog-input">
+                <input type="password" id="confirmNewPasswordField" placeholder="Confirm New Password" class="dialog-input" style="margin-top: 10px;">
+                <p class="error-message" id="newPasswordError" style="display: none; color: red; font-size: 0.8em; margin-top: 5px;"></p>
+                <div class="dialog-buttons">
+                    <button id="resetPasswordSetNewBtn" class="dialog-button confirm">Set New Password</button>
+                    <button id="resetPasswordNewCancelBtn" class="dialog-button cancel">Cancel</button>
+                </div>
+            </div>
         </div>
     </div>
 

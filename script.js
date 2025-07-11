@@ -3,12 +3,27 @@ let startTime;
 let initialStartTime; // To store the very first start time
 let stopTime; // To store the exact stop time
 let isRunning = false;
+let isLoading = false; 
 let loggedInUserId = "";
-const apiUrl = "https://script.google.com/macros/s/AKfycbzMNj7x5P80swdCE3XUWktkPoWoaNEBL4ZMTw4EXH3-2HL8rp3ewDMfrR63UlCDwtFoMA/exec";
+const apiUrl = "https://script.google.com/macros/s/AKfycbznEeKcS8l1XjA6zV30yRJzQLBS3qFSkb-yItV3Y2cbtqMIEWaATpVp-zINQ5ReUjyusg/exec";
 let lastStatus = "";
 let lastAlertTime = 0;
 let failedStartLog = null; // Add this line
 let isStopPending = false; // New flag to track pending stop
+let settingsButton; // Declare it here
+let resetPasswordDialog;
+let resetPasswordMenuItem;
+let oldPasswordField;
+let newPasswordField;
+let confirmNewPasswordField;
+let resetPasswordConfirmOldBtn;
+let resetPasswordSetNewBtn;
+let resetPasswordCancelBtn;
+let resetPasswordNewCancelBtn; // New cancel button for the second screen
+let resetPasswordOldSection;
+let resetPasswordNewSection;
+let oldPasswordError;
+let newPasswordError;
 
 const timerDisplay = document.getElementById("timer");
 
@@ -28,14 +43,42 @@ function getDeviceType() {
     }
 }
 
-function toggleLoading(isLoading) {
+function toggleLoading(isLoading) { // <--- The parameter is named 'isLoading' here
     const container = document.querySelector('.container');
     if (container) {
-        if (isLoading) {
+        if (isLoading) { // <--- Use 'isLoading' here
             container.classList.add('loading-active');
         } else {
             container.classList.remove('loading-active');
         }
+    }
+    // Update the global isLoading flag
+    window.isLoading = isLoading; // <--- And use 'isLoading' here as well
+    updateSettingsButtonVisibility();
+}
+
+function updateSettingsButtonVisibility() {
+    if (!settingsButton) {
+        console.error("updateSettingsButtonVisibility: settingsButton is null or undefined!");
+        return;
+    }
+
+    if (isRunning) {
+        // RULE: During an active timer -> Gone (display: none)
+        settingsButton.style.display = 'none';
+        // Reset other properties in case they were set by a previous state
+        settingsButton.style.pointerEvents = 'auto';
+        settingsButton.style.opacity = '1';
+    } else if (window.isLoading) { // Use window.isLoading to ensure you're reading the global flag
+        // RULE: During loading (and timer is NOT active) -> Visible, but disabled
+        settingsButton.style.display = 'block'; // Make it visible
+        settingsButton.style.pointerEvents = 'none'; // Make it unclickable
+        settingsButton.style.opacity = '0.5'; // Dim it to indicate disabled
+    } else {
+        // RULE: Once timer is stopped AND status is sent (not loading) -> Reappear and Enabled
+        settingsButton.style.display = 'block'; // Make it visible
+        settingsButton.style.pointerEvents = 'auto'; // Make it clickable
+        settingsButton.style.opacity = '1'; // Full opacity
     }
 }
 
@@ -165,7 +208,7 @@ function removeAboutDialog() {
     if (dialog) document.body.removeChild(dialog);
 }
 
-function showScheduleUpdateDialog() {
+function showScheduleUpdateDialog(showCloseButton = false) { // Default to false if not provided
     const overlay = document.createElement('div');
     overlay.className = 'overlay';
     overlay.style.display = 'block';
@@ -265,6 +308,17 @@ function showScheduleUpdateDialog() {
     dialog.appendChild(customDurationsDiv); // Append the container for custom fields
     dialog.appendChild(updateButton);
 
+    if (showCloseButton) {
+        const closeButton = document.createElement('button');
+        closeButton.textContent = 'Close'; // <--- Change back to text
+        closeButton.className = 'custom-dialog-button cancel-button'; // <--- Use the cancel-button class
+        // Removed aria-label as it's less critical for visible text button
+        closeButton.addEventListener('click', () => {
+            removeScheduleDialog();
+        });
+        dialog.appendChild(closeButton); // <--- Append the Close button after the Update button
+    }
+
     document.body.appendChild(dialog);
 
     // --- NEW: Event listener for preset selection to show/hide custom fields ---
@@ -351,6 +405,7 @@ function removeScheduleDialog() {
     const dialog = document.getElementById('scheduleDialog');
     if (overlay) document.body.removeChild(overlay);
     if (dialog) document.body.removeChild(dialog);
+    
 }
 
 document.getElementById('passwordToggle').addEventListener('click', function() {
@@ -538,6 +593,66 @@ document.addEventListener("DOMContentLoaded", async function () {
     const logoutButton = document.getElementById("logoutBtn");
     const agentNameH2 = document.getElementById("agentName");
     const companyLogo = document.getElementById('companyLogo');
+    const settingsMenu = document.getElementById('settingsMenu');
+    const resetScheduleButton = document.getElementById('resetScheduleBtn');
+
+    settingsButton = document.getElementById("settingsBtn"); // Assign it here once DOM is ready
+    console.log("DOMContentLoaded: settingsButton element is:", settingsButton); // Check if it's found
+
+    resetPasswordDialog = document.getElementById("resetPasswordDialog");
+    resetPasswordMenuItem = document.getElementById("resetPasswordMenuItem");
+    oldPasswordField = document.getElementById("oldPasswordField");
+    newPasswordField = document.getElementById("newPasswordField");
+    confirmNewPasswordField = document.getElementById("confirmNewPasswordField");
+    resetPasswordConfirmOldBtn = document.getElementById("resetPasswordConfirmOldBtn");
+    resetPasswordCancelBtn = document.getElementById("resetPasswordCancelBtn");
+    resetPasswordSetNewBtn = document.getElementById("resetPasswordSetNewBtn");
+    resetPasswordNewCancelBtn = document.getElementById("resetPasswordNewCancelBtn"); // Get reference for new cancel button
+    resetPasswordOldSection = document.getElementById("resetPasswordOldSection");
+    resetPasswordNewSection = document.getElementById("resetPasswordNewSection");
+    oldPasswordError = document.getElementById("oldPasswordError");
+    newPasswordError = document.getElementById("newPasswordError");
+
+    if (resetPasswordMenuItem) {
+    resetPasswordMenuItem.addEventListener("click", function(event) {
+        event.preventDefault(); // Prevent default link behavior
+        showResetPasswordDialog();
+    });
+}
+
+// Add event listener for the cancel buttons
+   if (resetPasswordCancelBtn) {
+    resetPasswordCancelBtn.addEventListener("click", hideResetPasswordDialog);
+   }
+   if (resetPasswordNewCancelBtn) { // For the new cancel button
+    resetPasswordNewCancelBtn.addEventListener("click", hideResetPasswordDialog);
+   }
+   if (resetPasswordConfirmOldBtn) {
+    resetPasswordConfirmOldBtn.addEventListener("click", verifyOldPassword);
+   }
+
+   if (resetPasswordSetNewBtn) {
+    resetPasswordSetNewBtn.addEventListener("click", setNewPassword);
+}
+
+// Add event listener for the new cancel button in the new password section
+if (resetPasswordNewCancelBtn) {
+    resetPasswordNewCancelBtn.addEventListener("click", () => {
+        if (resetPasswordDialog) resetPasswordDialog.style.display = 'none';
+        if (overlay) overlay.style.display = 'none'; // Hide overlay if you use one
+        // Also clear fields when cancelling
+        if (oldPasswordField) oldPasswordField.value = '';
+        if (newPasswordField) newPasswordField.value = '';
+        if (confirmNewPasswordField) confirmNewPasswordField.value = '';
+        if (oldPasswordError) oldPasswordError.style.display = 'none';
+        if (newPasswordError) newPasswordError.style.display = 'none';
+
+        // Reset to old section state if cancelling from new password screen
+        if (resetPasswordOldSection) resetPasswordOldSection.style.display = 'block';
+        if (resetPasswordNewSection) resetPasswordNewSection.style.display = 'none';
+    });
+}
+
 
     if (companyLogo) {
         companyLogo.addEventListener('click', showAboutDialog);
@@ -560,9 +675,8 @@ document.addEventListener("DOMContentLoaded", async function () {
 
         // Check if schedule is stored, if not, show the dialog again
         if (!storedShiftStart || !storedShiftEnd || !storedBreakDuration || !storedLunchDuration) {
-            showScheduleUpdateDialog();
-        }
-
+            showScheduleUpdateDialog(false);
+        }   
         if (isRunning && savedStatus) {
             restoreTimer();
             console.log("Timer restored on page load for status:", savedStatus);
@@ -582,10 +696,282 @@ document.addEventListener("DOMContentLoaded", async function () {
         agentNameH2.textContent = "";
         timerDisplay.style.display = "none";
     }
+
+        // NEW: Settings button click handler
+    if (settingsButton) {
+        settingsButton.addEventListener('click', (event) => {
+            event.stopPropagation(); // Prevent document click from immediately closing it
+            settingsMenu.style.display = settingsMenu.style.display === 'block' ? 'none' : 'block';
+        });
+    }
+
+    // NEW: Reset Schedule button click handler
+    if (resetScheduleButton) {
+         resetScheduleButton.addEventListener('click', () => {
+        // --- NEW: Check for pending log in local storage ---
+            const failedStartLog = localStorage.getItem("failedStartLog");
+            const pendingStartLog = localStorage.getItem("pendingStartLog");
+            const pendingStopLog = localStorage.getItem("pendingStopLog");
+
+            if (failedStartLog) {
+            // Display an error message if a pending log exists
+            showAlert("Cannot reset schedule: There is a pending log entry from a failed start/stop. Please contact support.", 7000, 'error');
+            console.error("Reset schedule blocked: Pending log exists in localStorage:", failedStartLog);
+            return; // Stop the function execution
+            }
+            if (pendingStartLog) {
+            // Display an error message if a pending log exists
+            showAlert("Cannot reset schedule: There is a pending log entry from a failed start/stop. Please contact support.", 7000, 'error');
+            console.error("Reset schedule blocked: Pending log exists in localStorage:", pendingStartLog);
+            return; // Stop the function execution
+            }
+            if (pendingStopLog) {
+            // Display an error message if a pending log exists
+            showAlert("Cannot reset schedule: There is a pending log entry from a failed start/stop. Please contact support.", 7000, 'error');
+            console.error("Reset schedule blocked: Pending log exists in localStorage:", pendingStopLog);
+            return; // Stop the function execution
+            }
+        // --- END NEW CHECK ---
+
+           removeScheduleDialog();
+           showScheduleUpdateDialog(true); // Pass true to show the close button
+           settingsMenu.style.display = 'none';
+           });
+    }
+    // NEW: Close settings menu if clicked outside
+    document.addEventListener('click', (event) => {
+        if (settingsMenu && settingsMenu.style.display === 'block' && !settingsMenu.contains(event.target) && event.target !== settingsButton) {
+            settingsMenu.style.display = 'none';
+        }
+    });
+    // END NEW
     // --- NEW: Add Auto-Update Logic Calls Here ---
     checkForUpdatesAndRefresh(); // Check once on page load
     setInterval(checkForUpdatesAndRefresh, CHECK_INTERVAL_MS);
+    updateSettingsButtonVisibility(); // Initial call
 });
+
+
+function showResetPasswordDialog() {
+    // Show the overlay first (reusing existing logic from displayHistory)
+    const overlay = document.createElement('div');
+    overlay.className = 'overlay';
+    overlay.style.display = 'block';
+    document.body.appendChild(overlay);
+
+    // Show the dialog
+    if (resetPasswordDialog) {
+        resetPasswordDialog.style.display = "block";
+    }
+
+    // Always start with the old password section
+    if (resetPasswordOldSection) resetPasswordOldSection.style.display = 'block';
+    if (resetPasswordNewSection) resetPasswordNewSection.style.display = 'none';
+
+    // Clear any previous inputs or errors
+    if (oldPasswordField) oldPasswordField.value = '';
+    if (newPasswordField) newPasswordField.value = '';
+    if (confirmNewPasswordField) confirmNewPasswordField.value = '';
+    if (oldPasswordError) oldPasswordError.style.display = 'none';
+    if (newPasswordError) newPasswordError.style.display = 'none';
+
+    // Focus on the first input field
+    if (oldPasswordField) oldPasswordField.focus();
+}
+
+function hideResetPasswordDialog() {
+    // Hide the dialog
+    if (resetPasswordDialog) {
+        resetPasswordDialog.style.display = "none";
+    }
+    // Hide and remove the overlay
+    const overlay = document.querySelector('.overlay');
+    if (overlay) {
+        document.body.removeChild(overlay);
+    }
+}
+
+async function verifyOldPassword() {
+    console.log('verifyOldPassword function called.'); // Confirms function execution
+
+    const oldPassword = oldPasswordField.value.trim();
+    oldPasswordError.style.display = 'none'; // Hide previous errors
+
+    if (!oldPassword) {
+        oldPasswordError.textContent = 'Please enter your old password.';
+        oldPasswordError.style.display = 'block';
+        console.log('Validation failed: Old password is empty.'); // Added log
+        return;
+    }
+
+    console.log('Attempting to show loading indicator.'); // Added log
+    toggleLoading(true); // Show loading indicator
+
+    let data = null; // Initialize data to null
+    try {
+        console.log('loggedInUserId before URL construction:', loggedInUserId); // IMPORTANT: Check userId value
+        const url = `${apiUrl}?action=verifyOldPassword&userId=${encodeURIComponent(loggedInUserId)}&oldPassword=${encodeURIComponent(oldPassword)}`;
+        console.log('Constructed URL for fetchData:', url); // IMPORTANT: Check the full URL
+
+        // Changed to a GET request by only passing the URL
+        data = await fetchData(url); 
+
+        // !!! IMPORTANT DEBUG LOG: See what data is returned from fetchData !!!
+        console.log('Response data from App Script (verifyOldPassword):', data);
+
+        if (data && data.success) { // Check if data exists AND App Script indicates success
+            showAlert("Old password verified successfully!", 3000);
+            
+            // Transition to the new password section
+            if (resetPasswordOldSection) resetPasswordOldSection.style.display = 'none';
+            if (resetPasswordNewSection) resetPasswordNewSection.style.display = 'block';
+            
+            // Clear new password fields and focus
+            if (newPasswordField) newPasswordField.value = '';
+            if (confirmNewPasswordField) confirmNewPasswordField.value = '';
+            if (newPasswordError) newPasswordError.style.display = 'none'; // Clear any old new password errors
+            if (newPasswordField) newPasswordField.focus();
+
+        } else {
+            // This block executes if:
+            // 1. fetchData returned null (meaning it failed after all retries or had a serious issue)
+            // 2. fetchData returned data, but data.success was false (App Script explicitly denied)
+
+            if (data === null) {
+                // fetchData itself would have already shown a general network error alert (if it reached the end of retries).
+                oldPasswordError.textContent = 'Verification failed: Could not connect to server or response error.';
+                oldPasswordError.style.display = 'block';
+                console.error('Data from fetchData was null. Check network or App Script deployment/response format.'); // Specific error log
+            } else {
+                // App Script responded, but with success: false
+                // Use the message from App Script, or a generic one if no message is provided
+                oldPasswordError.textContent = data.message || 'Incorrect old password. Please try again.';
+                oldPasswordError.style.display = 'block';
+                console.log('App Script returned success: false. Message:', data.message); // Specific error log
+                if (data.message) { // Only show general alert if there's a specific message
+                    showAlert(data.message, 4000);
+                }
+            }
+        }
+    } catch (error) {
+        // This catch block is for unexpected errors within verifyOldPassword's own logic,
+        // as fetchData's internal catch handles network errors.
+        console.error('An unexpected error occurred in verifyOldPassword function:', error);
+        showAlert("An unexpected client-side error occurred during password verification.", 5000);
+        oldPasswordError.textContent = 'An unexpected error occurred.';
+        oldPasswordError.style.display = 'block';
+    } finally {
+        console.log('Hiding loading indicator.'); // Added log
+        toggleLoading(false); // Hide loading indicator
+    }
+}
+
+async function setNewPassword() {
+    const newPassword = newPasswordField.value;
+    const confirmNewPassword = confirmNewPasswordField.value;
+    newPasswordError.style.display = 'none'; // Hide previous errors
+
+    if (!newPassword || !confirmNewPassword) {
+        newPasswordError.textContent = 'Both new password fields cannot be empty.';
+        newPasswordError.style.display = 'block';
+        return false; // Indicate failure
+    }
+
+    if (newPassword !== confirmNewPassword) {
+        newPasswordError.textContent = 'New password and confirm password do not match.';
+        newPasswordError.style.display = 'block';
+        return false; // Indicate failure
+    }
+
+    if (newPassword.length < 6) { // Example: minimum 6 characters
+        newPasswordError.textContent = 'New password must be at least 6 characters long.';
+        newPasswordError.style.display = 'block';
+        return false; // Indicate failure
+    }
+
+    toggleLoading(true); // Show global loading indicator
+
+    // --- Visual feedback indicators, similar to logStatus ---
+    let successIndicator = document.createElement("div");
+    successIndicator.textContent = "Sending...";
+    successIndicator.style.color = "blue";
+    document.getElementById("controls").appendChild(successIndicator); // Assuming 'controls' is where you want these messages
+
+    // Prepare the data to send in the request body as JSON
+    const requestData = {
+        action: "setNewPassword",
+        userId: loggedInUserId,
+        newPassword: newPassword
+    };
+
+    let isSuccess = false; // Flag to track perceived success
+
+    try {
+        console.log('Sending direct fetch POST request (with no-cors mode, data in body) to:', apiUrl);
+        console.log('Request body data:', requestData);
+
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            mode: 'no-cors', // Still in no-cors mode
+            body: JSON.stringify(requestData) // Data sent as JSON body
+        });
+
+        console.log('Response object (with no-cors mode):', response);
+
+        if (response.type === 'opaque') {
+            isSuccess = true; // Request successfully initiated, treat as success from client perspective
+        } else {
+            // This path would rarely be hit in 'no-cors' unless there's an unexpected browser-level response type
+            console.error('Fetch did not result in an opaque response (but no explicit network error):', response);
+            isSuccess = false;
+        }
+
+    } catch (error) {
+        console.error('An unexpected client-side error occurred in setNewPassword function (no-cors attempt):', error);
+        isSuccess = false; // Network error or other fetch error
+    } finally {
+        toggleLoading(false); // Hide global loading indicator
+        successIndicator.remove(); // Remove the "Sending..." indicator
+
+        // Clear password fields regardless of success/failure
+        if (oldPasswordField) oldPasswordField.value = '';
+        if (newPasswordField) newPasswordField.value = '';
+        if (confirmNewPasswordField) confirmNewPasswordField.value = '';
+
+        // --- Hide the password dialog ---
+        if (resetPasswordDialog) {
+            resetPasswordDialog.style.display = 'none';
+        }
+
+        // --- NEW: Remove any general overlay that might be active ---
+        const generalOverlay = document.querySelector('.overlay');
+        if (generalOverlay) {
+            generalOverlay.remove(); // Remove the element from the DOM
+            console.log('General overlay removed.');
+        }
+
+        if (isSuccess) {
+            let successMessageDiv = document.createElement("div"); // Similar to logStatus
+            successMessageDiv.textContent = "Password updated successfully!";
+            successMessageDiv.style.color = "green";
+            document.getElementById("controls").appendChild(successMessageDiv);
+            showAlert("Password updated successfully!", 6000, 'success');
+            setTimeout(() => { successMessageDiv.remove(); }, 3000); // Remove success message after 3 seconds
+            return true; // Indicate client-side perceived success
+        } else {
+            let errorMessageDiv = document.createElement("div"); // Similar to logStatus
+            errorMessageDiv.textContent = "Failed to update password. Check console for details.";
+            errorMessageDiv.style.color = "red";
+            document.getElementById("controls").appendChild(errorMessageDiv);
+            showAlert("Failed to update password after attempt. Check console for browser errors.", 5000, 'error');
+            setTimeout(() => { errorMessageDiv.remove(); }, 5000); // Remove error message after 5 seconds
+            newPasswordError.textContent = 'Password update failed.'; // Update specific error field
+            newPasswordError.style.display = 'block'; // Make it visible
+            return false; // Indicate client-side failure
+        }
+    }
+}
 
 let activeButton = null; // Store reference to the active button
 
@@ -669,6 +1055,7 @@ async function startTimer(status) {
                 const startTimestamp = new Date(startTime + (8 * 60 * 60 * 1000)).toISOString().replace("T", " ").split(".")[0]; // Capture formatted start timestamp
                 isRunning = true;
                 lastStatus = status;
+                updateSettingsButtonVisibility(); // <--- Add this
 
                 const agentNameElement = document.getElementById("agentName");
                 const loggedInUserName = localStorage.getItem("loggedInUserName");
@@ -908,6 +1295,7 @@ async function stopTimer() {
     }
 
     isRunning = false;
+    updateSettingsButtonVisibility(); // <--- Add this
     stopTime = Date.now();
     const stopTimestamp = new Date(stopTime + (8 * 60 * 60 * 1000)).toISOString().replace("T", " ").split(".")[0];
 
@@ -1228,7 +1616,14 @@ document.getElementById("logoutBtn").addEventListener("click", async () => {
 });
 
 document.getElementById("closeHistoryBtn").addEventListener("click", function() {
-    document.getElementById("historyDisplay").style.display = "none";
+    let historyDisplay = document.getElementById("historyDisplay"); // Get reference to historyDisplay
+    historyDisplay.style.display = "none"; // Hide the history dialog
+
+    // 2. Hide and remove the overlay
+    const overlay = document.querySelector('.overlay'); // Find the active overlay
+    if (overlay) { // Ensure it exists before trying to remove it
+        document.body.removeChild(overlay);
+    }
 });
 
 document.getElementById("exportHistoryBtn").addEventListener("click", () => {
@@ -1304,6 +1699,11 @@ async function checkForUpdatesAndRefresh() {
 const CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
 function displayHistory(history) {
+    const overlay = document.createElement('div');
+    overlay.className = 'overlay'; // Reuses your existing overlay styles
+    overlay.style.display = 'block'; // Make it visible
+    document.body.appendChild(overlay); // Add it to the body
+
     let tableBody = document.getElementById("historyTable").getElementsByTagName("tbody")[0];
     tableBody.innerHTML = "";
 
