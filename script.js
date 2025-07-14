@@ -24,6 +24,15 @@ let resetPasswordOldSection;
 let resetPasswordNewSection;
 let oldPasswordError;
 let newPasswordError;
+let userInfoButton;
+let userInfoDialog;
+let userInfoOverlay;
+let userInfoAgentName;
+let userInfoUserId;
+let userInfoShiftSchedule;
+let userInfoAllowedBreakDuration;
+let userInfoAllowedLunchDuration;
+let closeUserInfoDialogBtn;
 
 const timerDisplay = document.getElementById("timer");
 
@@ -612,11 +621,41 @@ document.addEventListener("DOMContentLoaded", async function () {
     resetPasswordNewSection = document.getElementById("resetPasswordNewSection");
     oldPasswordError = document.getElementById("oldPasswordError");
     newPasswordError = document.getElementById("newPasswordError");
+    userInfoButton = document.getElementById('userInfoButton');
+    userInfoDialog = document.getElementById('userInfoDialog');
+    userInfoAgentName = document.getElementById('userInfoAgentName');
+    userInfoUserId = document.getElementById('userInfoUserId');
+    userInfoShiftSchedule = document.getElementById('userInfoShiftSchedule');
+    userInfoAllowedBreakDuration = document.getElementById('userInfoAllowedBreakDuration');
+    userInfoAllowedLunchDuration = document.getElementById('userInfoAllowedLunchDuration');
+    closeUserInfoDialogBtn = document.getElementById('closeUserInfoDialogBtn');
+
+
+
+        // --- User Info Dialog Event Listeners ---
+    if (userInfoButton) {
+        userInfoButton.addEventListener('click', () => {
+            showUserInfoDialog();
+            // Optional: Hide settings menu if the button is within it
+            if (settingsMenu) settingsMenu.style.display = 'none';
+        });
+    } else {
+        console.error('ERROR: userInfoButton not found in DOM when trying to attach listener.');
+    }
+
+    if (closeUserInfoDialogBtn) {
+        closeUserInfoDialogBtn.addEventListener('click', hideUserInfoDialog);
+    }
+
+    if (userInfoOverlay) {
+        userInfoOverlay.addEventListener('click', hideUserInfoDialog); // Click overlay to close
+    }
 
     if (resetPasswordMenuItem) {
     resetPasswordMenuItem.addEventListener("click", function(event) {
         event.preventDefault(); // Prevent default link behavior
         showResetPasswordDialog();
+        settingsMenu.style.display = 'none';
     });
 }
 
@@ -738,6 +777,54 @@ if (resetPasswordNewCancelBtn) {
            settingsMenu.style.display = 'none';
            });
     }
+
+        if (userIdInput && loginButton) {
+        // Listen on userId input (pressing Enter here moves to password, or logs in if password is empty)
+        userIdInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                // If password field exists and is visible, move focus to it
+                const passwordInput = document.getElementById('password');
+                if (passwordInput && passwordInput.style.display !== 'none') {
+                    passwordInput.focus();
+                } else {
+                    // Otherwise, try to log in (e.g., if password field is hidden after login)
+                    loginButton.click();
+                }
+            }
+        });
+    }
+
+    if (document.getElementById("password") && loginButton) {
+        document.getElementById("password").addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault(); // Prevent default form submission
+                loginButton.click(); // Programmatically click the login button
+            }
+        });
+    }
+
+    // 2. For Reset Password - Old Password Confirmation
+    if (oldPasswordField && resetPasswordConfirmOldBtn) {
+        oldPasswordField.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                resetPasswordConfirmOldBtn.click();
+            }
+        });
+    }
+
+    // 3. For Reset Password - New Password Confirmation
+    // Listener on the last input field of the new password section
+    if (confirmNewPasswordField && resetPasswordSetNewBtn) {
+        confirmNewPasswordField.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                resetPasswordSetNewBtn.click();
+            }
+        });
+    }
+    
     // NEW: Close settings menu if clicked outside
     document.addEventListener('click', (event) => {
         if (settingsMenu && settingsMenu.style.display === 'block' && !settingsMenu.contains(event.target) && event.target !== settingsButton) {
@@ -971,6 +1058,49 @@ async function setNewPassword() {
             return false; // Indicate client-side failure
         }
     }
+}
+
+function showUserInfoDialog() {
+    const overlay = document.createElement('div');
+    overlay.className = 'overlay';
+    overlay.style.display = 'block';
+    document.body.appendChild(overlay);
+    // Retrieve individual user data from localStorage
+    const agentName = localStorage.getItem('loggedInUserName');
+    const userId = localStorage.getItem('loggedInUserId');
+    const shiftStart = localStorage.getItem('shiftStart');
+    const shiftEnd = localStorage.getItem('shiftEnd');
+    const breakDuration = localStorage.getItem('breakDuration');
+    const lunchDuration = localStorage.getItem('lunchDuration');
+
+    // Combine shift schedule for display
+    const shiftSchedule = (shiftStart && shiftEnd) ? `${shiftStart} - ${shiftEnd}` : 'N/A';
+
+    // Populate the dialog with retrieved data (with checks for null elements)
+    if (userId && agentName) {
+        if (userInfoAgentName) userInfoAgentName.textContent = agentName;
+        if (userInfoUserId) userInfoUserId.textContent = userId;
+        if (userInfoShiftSchedule) userInfoShiftSchedule.textContent = shiftSchedule;
+        if (userInfoAllowedBreakDuration) userInfoAllowedBreakDuration.textContent = breakDuration ? `${breakDuration} mins` : 'N/A';
+        if (userInfoAllowedLunchDuration) userInfoAllowedLunchDuration.textContent = lunchDuration ? `${lunchDuration} mins` : 'N/A';
+    } else {
+        // Fallback if data is not found
+        if (userInfoAgentName) userInfoAgentName.textContent = 'Not Available';
+        if (userInfoUserId) userInfoUserId.textContent = 'Not Available';
+        if (userInfoShiftSchedule) userInfoShiftSchedule.textContent = 'Not Available';
+        if (userInfoAllowedBreakDuration) userInfoAllowedBreakDuration.textContent = 'Not Available';
+        if (userInfoAllowedLunchDuration) userInfoAllowedLunchDuration.textContent = 'Not Available';
+        showAlert("User info not found in local storage. Please log in.", 4000, 'error');
+    }
+
+    // Display the dialog and its custom overlay
+    if (userInfoDialog) userInfoDialog.style.display = 'block';
+}
+
+function hideUserInfoDialog() {
+    const overlay = document.querySelector('.overlay');
+    if (userInfoDialog) userInfoDialog.style.display = 'none';
+    if (overlay) document.body.removeChild(overlay);
 }
 
 let activeButton = null; // Store reference to the active button

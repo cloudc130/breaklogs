@@ -104,6 +104,7 @@
                  <div id="settingsMenu" class="settings-menu">
                     <button id="resetScheduleBtn" class="settings-menu-item">Reset Schedule</button>
                     <button id="resetPasswordMenuItem" class="settings-menu-item">Reset Password</button>
+                    <button id="userInfoButton" class="menu-button">User Info</button>
                     </div>
                 </div>
                 <h2 id="agentName" style="margin-top: 20px; margin-bottom: 10px;"></h2>
@@ -168,6 +169,18 @@
                 </div>
             </div>
         </div>
+    </div>
+        <div id="userInfoDialog" class="custom-dialog" style="display: none;"> <div class="user-info-header">
+              <h2 id="userInfoTitle">Agent Information</h2>
+              <button id="closeUserInfoDialogBtn" class="dialog-close-btn">&times;</button>
+           </div>
+          <div class="user-info-content">
+            <p><strong>Agent Name:</strong> <span id="userInfoAgentName">N/A</span></p>
+            <p><strong>User ID:</strong> <span id="userInfoUserId">N/A</span></p>
+            <p><strong>Shift Schedule:</strong> <span id="userInfoShiftSchedule">N/A</span></p>
+            <p><strong>Allowed Break:</strong> <span id="userInfoAllowedBreakDuration">N/A</span></p>
+            <p><strong>Allowed Lunch:</strong> <span id="userInfoAllowedLunchDuration">N/A</span></p>
+          </div>
     </div>
 
     <iframe id="logoutFrame" style="display:none;"></iframe>
