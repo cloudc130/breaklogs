@@ -727,13 +727,13 @@ input, .password-toggle {
 
 .custom-dialog .user-info-header h2 {
     margin: 0;
-    font-size: 1.8em;
+    font-size: 1.3em;
     color: #00bcd4;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .custom-dialog .user-info-content p {
-    font-size: 1.1em;
+    font-size: 0.9em;
     line-height: 1.6;
     margin-bottom: 12px;
     display: flex; /* Use flexbox for label-value alignment */
