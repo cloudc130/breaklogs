@@ -5,7 +5,7 @@ let stopTime; // To store the exact stop time
 let isRunning = false;
 let isLoading = false; 
 let loggedInUserId = "";
-const apiUrl = "https://script.google.com/macros/s/AKfycbznEeKcS8l1XjA6zV30yRJzQLBS3qFSkb-yItV3Y2cbtqMIEWaATpVp-zINQ5ReUjyusg/exec";
+const apiUrl = "https://script.google.com/macros/s/AKfycbzA0Jsj-MeN24i0iXB3msIzTg4jq8JHwf0r_MjKklLRY0oP3hoqnzI6ZOsTV1IgM-cR/exec";
 let lastStatus = "";
 let lastAlertTime = 0;
 let failedStartLog = null; // Add this line
