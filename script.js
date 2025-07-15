@@ -33,6 +33,23 @@ let userInfoShiftSchedule;
 let userInfoAllowedBreakDuration;
 let userInfoAllowedLunchDuration;
 let closeUserInfoDialogBtn;
+let changeBackgroundMenuItem;
+let changeBackgroundDialog;
+let closeChangeBackgroundDialogBtn;
+let backgroundOptionsContainer;
+let resetBackgroundBtn;
+
+const backgroundOptions = [
+    { name: 'Default', url: '', thumbnail: '' }, // Empty URL for default, will reset to CSS body background
+    { name: 'Abstract Blue', url: 'images/abstract_blue.jpg', thumbnail: 'images/abstract_blue.jpg' },
+    { name: 'Night Sky', url: 'images/night_sky.jpg', thumbnail: 'images/night_sky.jpg' },
+    { name: 'Geometric', url: 'images/geometric.jpg', thumbnail: 'images/geometric.jpg' },
+    { name: 'Pink', url: 'images/pink.jpg', thumbnail: 'images/pink.jpg' },
+    { name: 'City Lights', url: 'images/city_lights.jpg', thumbnail: 'images/city_lights.jpg' },
+    { name: 'Sci-Fi Grid GIF', url: 'images/sci_fi.gif', thumbnail: 'images/sci_fi.gif' },
+    { name: 'BDO7', url: 'images/bdo7.gif', thumbnail: 'images/bdo7.gif' },
+    { name: 'Enchanted', url: 'images/enchanted.gif', thumbnail: 'images/enchanted.gif' },
+];
 
 const timerDisplay = document.getElementById("timer");
 
@@ -629,7 +646,42 @@ document.addEventListener("DOMContentLoaded", async function () {
     userInfoAllowedBreakDuration = document.getElementById('userInfoAllowedBreakDuration');
     userInfoAllowedLunchDuration = document.getElementById('userInfoAllowedLunchDuration');
     closeUserInfoDialogBtn = document.getElementById('closeUserInfoDialogBtn');
+    changeBackgroundMenuItem = document.getElementById('changeBackgroundMenuItem');
+    changeBackgroundDialog = document.getElementById('changeBackgroundDialog');
+    closeChangeBackgroundDialogBtn = document.getElementById('closeChangeBackgroundDialogBtn');
+    backgroundOptionsContainer = document.getElementById('backgroundOptions');
+    resetBackgroundBtn = document.getElementById('resetBackgroundBtn');
 
+
+    if (changeBackgroundMenuItem) {
+        changeBackgroundMenuItem.addEventListener('click', () => {
+            settingsMenu.style.display = 'none';
+            showChangeBackgroundDialog();
+        });
+    }
+
+    if (closeChangeBackgroundDialogBtn) {
+        closeChangeBackgroundDialogBtn.addEventListener('click', hideChangeBackgroundDialog);
+    }
+
+    if (backgroundOptionsContainer) {
+        backgroundOptionsContainer.addEventListener('click', (event) => {
+            const selectedOption = event.target.closest('.background-option');
+            if (selectedOption) {
+                const url = selectedOption.dataset.bgUrl;
+                applyBackground(url); // Apply the background immediately on click
+                selectBackgroundOption(selectedOption); // Visually select it
+                // Optionally close dialog after selection: hideChangeBackgroundDialog();
+            }
+        });
+    }
+
+    if (resetBackgroundBtn) {
+        resetBackgroundBtn.addEventListener('click', () => {
+            resetBackground();
+            hideChangeBackgroundDialog();
+        });
+    }
 
 
         // --- User Info Dialog Event Listeners ---
@@ -836,7 +888,110 @@ if (resetPasswordNewCancelBtn) {
     checkForUpdatesAndRefresh(); // Check once on page load
     setInterval(checkForUpdatesAndRefresh, CHECK_INTERVAL_MS);
     updateSettingsButtonVisibility(); // Initial call
+    populateBackgroundOptions(); // Populate options when the page loads
+    loadSavedBackground(); // Load any saved background on page load
 });
+
+
+function showChangeBackgroundDialog() {
+    const overlay = document.createElement('div');
+    overlay.className = 'overlay';
+    overlay.style.display = 'block';
+    document.body.appendChild(overlay);
+
+    if (changeBackgroundDialog) {
+        changeBackgroundDialog.style.display = 'block';
+        document.body.classList.add('dialog-open'); // Add class to body to prevent scrolling
+    }
+}
+
+function hideChangeBackgroundDialog() {
+    if (changeBackgroundDialog) {
+        changeBackgroundDialog.style.display = 'none';
+        document.body.classList.remove('dialog-open');
+    }
+
+    const overlay = document.querySelector('.overlay');
+    if (overlay) {
+        document.body.removeChild(overlay);
+    }
+}
+
+function populateBackgroundOptions() {
+    if (!backgroundOptionsContainer) return;
+
+    backgroundOptionsContainer.innerHTML = ''; // Clear existing options
+
+    backgroundOptions.forEach(option => {
+        const optionDiv = document.createElement('div');
+        optionDiv.classList.add('background-option');
+        // Store the full URL in a data attribute
+        optionDiv.dataset.bgUrl = option.url;
+
+        // Use thumbnail if available, otherwise use full URL for preview
+        const img = document.createElement('img');
+        img.src = option.thumbnail || option.url;
+        img.alt = option.name;
+        img.title = option.name; // Show name on hover
+
+        optionDiv.appendChild(img);
+        backgroundOptionsContainer.appendChild(optionDiv);
+    });
+}
+
+function applyBackground(url) {
+    const body = document.body;
+    if (url) {
+        body.style.backgroundImage = `url('${url}')`;
+        body.style.backgroundSize = 'cover';
+        body.style.backgroundRepeat = 'no-repeat';
+        body.style.backgroundAttachment = 'fixed'; // Keep background fixed when scrolling
+        localStorage.setItem('selectedBackground', url); // Save to local storage
+    } else {
+        // Reset to default (defined in CSS or no background)
+        body.style.backgroundImage = '';
+        body.style.backgroundSize = '';
+        body.style.backgroundRepeat = '';
+        body.style.backgroundAttachment = '';
+        localStorage.removeItem('selectedBackground'); // Remove from local storage
+    }
+    updateSelectedBackgroundOption(url); // Update visual selection
+}
+
+function loadSavedBackground() {
+    const savedUrl = localStorage.getItem('selectedBackground');
+    if (savedUrl) {
+        applyBackground(savedUrl);
+    } else {
+        // Ensure default styling if no background is saved
+        resetBackground();
+    }
+}
+
+function selectBackgroundOption(selectedElement) {
+    // Remove 'selected' class from all options
+    document.querySelectorAll('.background-option').forEach(option => {
+        option.classList.remove('selected');
+    });
+    // Add 'selected' class to the clicked element
+    if (selectedElement) {
+        selectedElement.classList.add('selected');
+    }
+}
+
+function updateSelectedBackgroundOption(currentUrl) {
+    document.querySelectorAll('.background-option').forEach(option => {
+        if (option.dataset.bgUrl === currentUrl) {
+            option.classList.add('selected');
+        } else {
+            option.classList.remove('selected');
+        }
+    });
+}
+
+function resetBackground() {
+    applyBackground(''); // Call applyBackground with an empty string to reset
+}
 
 
 function showResetPasswordDialog() {
