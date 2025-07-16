@@ -51,6 +51,8 @@ const backgroundOptions = [
     { name: 'Enchanted', url: 'images/enchanted.gif', thumbnail: 'images/enchanted.gif' },
     { name: 'Anime', url: 'images/anime.gif', thumbnail: 'images/anime.gif' },
     { name: 'Coffee', url: 'images/coffee.jpg', thumbnail: 'images/coffee.jpg' },
+    { name: 'Flower', url: 'images/flowers.gif', thumbnail: 'images/flowers.gif' },
+    { name: 'Girl', url: 'images/girl.gif', thumbnail: 'images/girl.gif' },
 ];
 
 const timerDisplay = document.getElementById("timer");
