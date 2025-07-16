@@ -5,7 +5,7 @@ let stopTime; // To store the exact stop time
 let isRunning = false;
 let isLoading = false; 
 let loggedInUserId = "";
-const apiUrl = "https://script.google.com/macros/s/AKfycbznEeKcS8l1XjA6zV30yRJzQLBS3qFSkb-yItV3Y2cbtqMIEWaATpVp-zINQ5ReUjyusg/exec";
+const apiUrl = "https://script.google.com/macros/s/AKfycbzQBDi8KQgvpUDrrw5DIkf0gAuF52cpW4CTYK0xxKQvfrrHJ6wXT7bnPx1auyxf1tnj/exec";
 let lastStatus = "";
 let lastAlertTime = 0;
 let failedStartLog = null; // Add this line
@@ -49,6 +49,8 @@ const backgroundOptions = [
     { name: 'Sci-Fi Grid GIF', url: 'images/sci_fi.gif', thumbnail: 'images/sci_fi.gif' },
     { name: 'BDO7', url: 'images/bdo7.gif', thumbnail: 'images/bdo7.gif' },
     { name: 'Enchanted', url: 'images/enchanted.gif', thumbnail: 'images/enchanted.gif' },
+    { name: 'Anime', url: 'images/anime.gif', thumbnail: 'images/anime.gif' },
+    { name: 'Coffee', url: 'images/coffee.jpg', thumbnail: 'images/coffee.jpg' },
 ];
 
 const timerDisplay = document.getElementById("timer");
