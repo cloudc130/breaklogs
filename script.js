@@ -53,6 +53,9 @@ const backgroundOptions = [
     { name: 'Coffee', url: 'images/coffee.jpg', thumbnail: 'images/coffee.jpg' },
     { name: 'Flower', url: 'images/flowers.gif', thumbnail: 'images/flowers.gif' },
     { name: 'Girl', url: 'images/girl.gif', thumbnail: 'images/girl.gif' },
+    { name: 'Car', url: 'images/car.gif', thumbnail: 'images/car.gif' },
+    { name: 'Cloud', url: 'images/cloud.gif', thumbnail: 'images/cloud.gif' },
+    { name: 'Pigeon', url: 'images/pigeon.gif', thumbnail: 'images/pigeon.gif' },
 ];
 
 const timerDisplay = document.getElementById("timer");
