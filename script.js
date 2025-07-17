@@ -56,6 +56,7 @@ const backgroundOptions = [
     { name: 'Car', url: 'images/car.gif', thumbnail: 'images/car.gif' },
     { name: 'Cloud', url: 'images/cloud.gif', thumbnail: 'images/cloud.gif' },
     { name: 'Pigeon', url: 'images/pigeon.gif', thumbnail: 'images/pigeon.gif' },
+    { name: 'Zenitsu', url: 'images/zenitsu.gif', thumbnail: 'images/zenitsu.gif' },
 ];
 
 const timerDisplay = document.getElementById("timer");
