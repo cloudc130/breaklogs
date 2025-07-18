@@ -57,6 +57,8 @@ const backgroundOptions = [
     { name: 'Cloud', url: 'images/cloud.gif', thumbnail: 'images/cloud.gif' },
     { name: 'Pigeon', url: 'images/pigeon.gif', thumbnail: 'images/pigeon.gif' },
     { name: 'Zenitsu', url: 'images/zenitsu.gif', thumbnail: 'images/zenitsu.gif' },
+    { name: 'Sunset', url: 'images/sunset.jpg', thumbnail: 'images/sunset.jpg' },
+    { name: 'Blue', url: 'images/blue.gif', thumbnail: 'images/blue.gif' },
 ];
 
 const timerDisplay = document.getElementById("timer");
