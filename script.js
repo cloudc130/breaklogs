@@ -59,6 +59,7 @@ const backgroundOptions = [
     { name: 'Blue', url: 'https://i.ibb.co/qMbYrs8n/blue.gif', thumbnail: 'https://i.ibb.co/qMbYrs8n/blue.gif' },
     { name: 'One Piece', url: 'https://i.ibb.co/MDWBQwDL/one-piece.gif', thumbnail: 'https://i.ibb.co/MDWBQwDL/one-piece.gif' },
     { name: 'Naruto', url: 'https://i.ibb.co/LdhqBHKK/naruto.gif', thumbnail: 'https://i.ibb.co/LdhqBHKK/naruto.gif' },
+    { name: 'Dog', url: 'https://i.ibb.co/q3nWYNDP/dog.gif', thumbnail: 'https://i.ibb.co/q3nWYNDP/dog.gif' },
 ];
 
 const timerDisplay = document.getElementById("timer");
