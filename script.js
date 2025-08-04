@@ -61,7 +61,9 @@ const backgroundOptions = [
     { name: 'Naruto', url: 'https://i.ibb.co/LdhqBHKK/naruto.gif', thumbnail: 'https://i.ibb.co/LdhqBHKK/naruto.gif' },
     { name: 'Dog', url: 'https://i.ibb.co/q3nWYNDP/dog.gif', thumbnail: 'https://i.ibb.co/q3nWYNDP/dog.gif' },
     { name: 'Peaceful', url: 'https://i.ibb.co/F2gc0XF/peaceful.gif', thumbnail: 'https://i.ibb.co/F2gc0XF/peaceful.gif' },
-];
+    { name: 'Lebron', url: 'https://i.ibb.co/WpxPsxS9/lebron.jpg', thumbnail: 'https://i.ibb.co/WpxPsxS9/lebron.jpg' },
+    { name: 'Kobe', url: 'https://i.ibb.co/h11YWcQc/kobe.jpg', thumbnail: 'https://i.ibb.co/h11YWcQc/kobe.jpg' },
+];                                                                                                                                                                                                                            
 
 const timerDisplay = document.getElementById("timer");
 
