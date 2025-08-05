@@ -63,6 +63,12 @@ const backgroundOptions = [
     { name: 'Peaceful', url: 'https://i.ibb.co/F2gc0XF/peaceful.gif', thumbnail: 'https://i.ibb.co/F2gc0XF/peaceful.gif' },
     { name: 'Lebron', url: 'https://i.ibb.co/WpxPsxS9/lebron.jpg', thumbnail: 'https://i.ibb.co/WpxPsxS9/lebron.jpg' },
     { name: 'Kobe', url: 'https://i.ibb.co/h11YWcQc/kobe.jpg', thumbnail: 'https://i.ibb.co/h11YWcQc/kobe.jpg' },
+    { name: 'Cat', url: 'https://i.ibb.co/wZf8cBJ5/cat.jpg', thumbnail: 'https://i.ibb.co/wZf8cBJ5/cat.jpg' },
+    { name: 'Gato', url: 'https://i.ibb.co/zTJpdDBQ/gato.jpg', thumbnail: 'https://i.ibb.co/zTJpdDBQ/gato.jpg' },
+    { name: 'Catz', url: 'https://i.ibb.co/ZpTCWCVf/catz.jpg', thumbnail: 'https://i.ibb.co/ZpTCWCVf/catz.jpg' },
+    { name: 'Dog', url: 'https://i.ibb.co/MxLMX249/dog.jpg', thumbnail: 'https://i.ibb.co/MxLMX249/dog.jpg' },
+    { name: 'Sad_Dog', url: 'https://i.ibb.co/ZpPTFd86/sad-dog.jpg', thumbnail: 'https://i.ibb.co/ZpPTFd86/sad-dog.jpg' },
+    { name: 'Aso', url: 'https://i.ibb.co/JRNZ25CH/aso.jpg', thumbnail: 'https://i.ibb.co/JRNZ25CH/aso.jpg' },
 ];                                                                                                                                                                                                                            
 
 const timerDisplay = document.getElementById("timer");
