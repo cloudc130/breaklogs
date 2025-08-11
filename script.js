@@ -73,6 +73,11 @@ const backgroundOptions = [
 
 const timerDisplay = document.getElementById("timer");
 
+window.addEventListener('online', () => {
+    console.log("Network back online — attempting to sync pending logs...");
+    autoSyncPendingLogs();
+});
+
 function getDeviceType() {
     const userAgent = navigator.userAgent;
     const mobileKeywords = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
@@ -467,37 +472,46 @@ document.getElementById('passwordToggle').addEventListener('click', function() {
 });
 
 
-async function fetchData(url, retryCount = 3) {
+async function fetchData(url, retryCount = 3, baseDelay = 1500, maxDelay = 5000) {
     let attempts = 0;
-    toggleLoading(true); // Start loading animation
+    toggleLoading(true);
+
     while (attempts < retryCount) {
         try {
             attempts++;
-            console.log(`Fetch attempt ${attempts} to: ${url}`); // Log the fetch attempt
+            console.log(`Fetch attempt ${attempts} to: ${url}`);
+
             const response = await fetch(url);
 
             if (!response.ok) {
-                console.log(`Fetch attempt ${attempts} failed with status: ${response.status}`); // Log the failed status
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
             const data = await response.json();
-            console.log(`Fetch attempt ${attempts} successful:`, data); // Log the successful response
+            console.log(`Fetch attempt ${attempts} successful:`, data);
+
             return data;
         } catch (error) {
-            console.error(`Fetch error (attempt ${attempts}):`, error); // Log the error
+            console.error(`Fetch error (attempt ${attempts}):`, error);
+
             if (attempts < retryCount) {
-                console.log(`Retrying in 2 seconds...`);
-                await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retrying
+                // Exponential backoff with cap and jitter
+                const delay = Math.min(baseDelay * Math.pow(2, attempts - 1), maxDelay);
+                const jitter = Math.floor(Math.random() * 300); // up to 300ms
+                const totalDelay = delay + jitter;
+
+                console.log(`Retrying in ${totalDelay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, totalDelay));
             } else {
-                console.log(`All ${retryCount} fetch attempts failed.`); // Log the failure after retries
-                showAlert("An error occurred after multiple retries. Please check your network connection.");
+                console.log(`All ${retryCount} fetch attempts failed.`);
+                showAlert("Unable to connect to the server. Please try again later.");
                 return null;
             }
         }
     }
-    toggleLoading(false); // Stop loading animation after logging attempt
-    return null; // Return null if all retries fail
+
+    toggleLoading(false);
+    return null;
 }
 
 document.getElementById("loginBtn").addEventListener("click", async function() {
@@ -597,7 +611,6 @@ document.getElementById("historyBtn").addEventListener("click", async function()
     const historyUrl = `${apiUrl}?action=history&userId=${loggedInUserId}`;
 
     // Resend any pending logs before fetching history
-    await resendPendingLogs();
 
     try {
         const historyData = await fetchData(historyUrl);
@@ -945,17 +958,31 @@ function populateBackgroundOptions() {
     backgroundOptions.forEach(option => {
         const optionDiv = document.createElement('div');
         optionDiv.classList.add('background-option');
-        // Store the full URL in a data attribute
         optionDiv.dataset.bgUrl = option.url;
 
-        // Use thumbnail if available, otherwise use full URL for preview
         const img = document.createElement('img');
-        img.src = option.thumbnail || option.url;
+        img.dataset.src = option.thumbnail || option.url; // store instead of immediate load
         img.alt = option.name;
-        img.title = option.name; // Show name on hover
+        img.title = option.name;
 
         optionDiv.appendChild(img);
         backgroundOptionsContainer.appendChild(optionDiv);
+    });
+
+    // Lazy-load observer
+    const observer = new IntersectionObserver((entries, obs) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const img = entry.target;
+                img.src = img.dataset.src; // load real image
+                img.onload = () => img.classList.add('loaded'); // fade in
+                obs.unobserve(img); // stop observing once loaded
+            }
+        });
+    }, { rootMargin: '50px 0px' }); // preload slightly before visible
+
+    document.querySelectorAll('.background-option img').forEach(img => {
+        observer.observe(img);
     });
 }
 
@@ -1284,9 +1311,11 @@ async function resendPendingLogs() {
     const pendingStartLogData = localStorage.getItem("pendingStartLog");
     const pendingStopLogData = localStorage.getItem("pendingStopLog");
 
+    let allSynced = true; // track if everything was successful
+
     if (pendingStartLogData) {
         const startLogData = JSON.parse(pendingStartLogData);
-        console.log("Attempting to resend pending start log (on new start/fetch):", startLogData);
+        console.log("Attempting to resend pending start log (on auto-sync):", startLogData);
         const startSuccess = await logStatus(
             startLogData.status,
             "",
@@ -1301,16 +1330,15 @@ async function resendPendingLogs() {
             localStorage.removeItem("initialStartTime");
             localStorage.removeItem("failedStartLog");
             console.log("Pending start log resent successfully!");
-            showAlert("Pending start log resent successfully!");
         } else {
             console.error("Failed to resend pending start log.");
-            showAlert("Failed to resend pending start log.");
+            allSynced = false;
         }
     }
 
     if (pendingStopLogData) {
         const stopLogData = JSON.parse(pendingStopLogData);
-        console.log("Attempting to resend pending stop log (on new start/fetch):", stopLogData);
+        console.log("Attempting to resend pending stop log (on auto-sync):", stopLogData);
         const stopSuccess = await logStatus(
             stopLogData.status,
             stopLogData.duration,
@@ -1321,30 +1349,57 @@ async function resendPendingLogs() {
         );
         if (stopSuccess) {
             localStorage.removeItem("pendingStopLog");
-            localStorage.removeItem("retryScheduled"); // Clean up retry flag if it exists
-            // NEW: Clear all active timer state variables as the stop log was successfully sent.
+            localStorage.removeItem("retryScheduled"); 
             localStorage.removeItem("isRunning");
             localStorage.removeItem("startTime");
             localStorage.removeItem("initialStartTime");
             localStorage.removeItem("status");
             localStorage.removeItem("lastStatus");
-            localStorage.removeItem("isStopPending"); // Also clear this flag
-            localStorage.removeItem("stopCompleted"); // Ensure this is also cleared
+            localStorage.removeItem("isStopPending");
+            localStorage.removeItem("stopCompleted");
             console.log("Pending stop log resent successfully and timer state cleared!");
-            showAlert("Pending stop log resent successfully!");
         } else {
             console.error("Failed to resend pending stop log.");
-            showAlert("Failed to resend pending stop log.");
+            allSynced = false;
         }
     }
-    localStorage.removeItem("retryScheduled"); // Ensure retry flag is cleared after attempt, even if both fail
+
+    localStorage.removeItem("retryScheduled");
+
+    return allSynced;
 }
+
+function autoSyncPendingLogs() {
+    if (!localStorage.getItem("pendingStartLog") && !localStorage.getItem("pendingStopLog")) {
+        console.log("No pending logs to sync.");
+        return;
+    }
+
+    console.log("Pending logs detected, starting auto-sync...");
+
+    let delay = 3000; // start at 3s
+    const maxDelay = 30000; // cap at 30s
+
+    const attemptSync = async () => {
+        const success = await resendPendingLogs();
+        if (success) {
+            console.log("All pending logs synced successfully.");
+            showAlert("Your break/lunch logs were synced after reconnecting!");
+        } else {
+            delay = Math.min(delay * 2, maxDelay);
+            console.log(`Some logs still pending. Retrying in ${delay}ms...`);
+            setTimeout(attemptSync, delay);
+        }
+    };
+
+    attemptSync();
+}
+
 
 async function startTimer(status) {
     if (isRunning || isStopPending) return; // Check isStopPending
 
     // Attempt to resend any pending logs at the start of a new timer
-    await resendPendingLogs();
 
     const confirmationMessage = `Are you sure you want to start the <span class="dialog-status-text"><img src="${status}.png" alt="${status} icon" class="dialog-status-icon"> ${status.charAt(0).toUpperCase() + status.slice(1)} <img src="${status}.png" alt="${status} icon" class="dialog-status-icon"></span> timer?`;
 
@@ -1424,7 +1479,6 @@ async function startTimer(status) {
                 if (!logResult) {
                     // If logging failed, save initial start time, status, and timestamp for potential later logging
                     localStorage.setItem("pendingStartLog", JSON.stringify({ initialStartTime: initialStartTime, status: status, timestamp: startTimestamp }));
-                    showAlert("Start timer log failed. Will attempt to log on next start.");
                 }
                 // Enable history button after start log status is done (regardless of success/failure for now)
                 document.getElementById("historyBtn").disabled = false;
@@ -1651,9 +1705,6 @@ async function stopTimer() {
     };
     localStorage.setItem("pendingStopLog", JSON.stringify(stopLogData));
 
-    // Attempt to send any failed start log first (as per previous logic)
-    const startLogSent = await sendFailedStartLog();
-
     const stopLogResult = await logStatus(lastStatus, duration, initialStartTime, stopLogData.endTime, undefined, stopTimestamp);
 
     if (stopLogResult) {
@@ -1825,32 +1876,6 @@ async function logStatus(status, duration = "", startTimeOverride = null, endTim
     }
 }
 
-async function sendFailedStartLog() {
-    const storedFailedStartLog = localStorage.getItem("failedStartLog");
-    if (storedFailedStartLog) {
-        const startLogData = JSON.parse(storedFailedStartLog);
-        console.log("Attempting to send failed start log:", startLogData);
-        const success = await logStatus(
-            startLogData.status,
-            "", // No duration for start
-            startLogData.startTime,
-            "",  // No endTime for start
-            undefined, // Use default retry count
-            startLogData.timestamp // Pass the stored timestamp
-        );
-        if (success) {
-            localStorage.removeItem("failedStartLog");
-            failedStartLog = null; // Clear the in-memory variable
-            showAlert("Failed start log sent successfully!");
-            return true;
-        } else {
-            showAlert("Failed to send start log. Will retry later.");
-            return false;
-        }
-    }
-    return true; // No failed start log to send
-}
-
 function formatTime(ms) {
     let totalSeconds = Math.floor(ms / 1000);
     let hours = Math.floor(totalSeconds / 3600);
@@ -1871,14 +1896,6 @@ document.getElementById("logoutBtn").addEventListener("click", async () => {
     logoutBtn.disabled = true;
     const frame = document.getElementById("logoutFrame");
     frame.src = "logoutFrame.html";
-
-    try {
-        await resendPendingLogs();
-        console.log("resendPendingLogs completed."); // Add this log
-    } catch (error) {
-        console.error("Error during resendPendingLogs:", error);
-        showAlert("An error occurred while trying to send pending logs.");
-    }
 
     const onLoadHandler = () => {
         console.log("iframe loaded");

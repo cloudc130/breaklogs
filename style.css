@@ -33,6 +33,13 @@ button, input, h1, h2, td, th { /* Added table cells/headers */
     justify-content: center; /* Center content horizontally within container */
 }
 
+.background-option img {
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+.background-option img.loaded {
+    opacity: 1;
+}
 
 /* Style for the SVG container */
 .border-loading-svg {
