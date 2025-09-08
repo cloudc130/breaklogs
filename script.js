@@ -508,6 +508,37 @@ function removeScheduleDialog() {
     
 }
 
+function askNotificationPermissionDialog() {
+  if (!("Notification" in window)) {
+    console.warn("This browser does not support desktop notifications.");
+    return;
+  }
+
+  // Only show if not already decided
+  if (Notification.permission === "default") {
+    createCustomDialog(
+      "To get break and lunch reminders, please enable notifications.",
+      () => {
+        Notification.requestPermission().then(permission => {
+          if (permission === "granted") {
+            console.log("Notifications enabled ✅");
+            localStorage.setItem("notificationsEnabled", "true");
+          } else {
+            console.warn("Notifications denied ❌");
+            localStorage.setItem("notificationsEnabled", "false");
+          }
+        });
+      },
+      () => {
+        console.log("User chose not to enable notifications now.");
+        localStorage.setItem("notificationsEnabled", "false");
+      },
+      "Enable Notifications", // confirm button
+      "Not Now"               // cancel button
+    );
+  }
+}
+
 document.getElementById('passwordToggle').addEventListener('click', function() {
     const passwordInput = document.getElementById('password');
     const toggleText = document.getElementById('toggleText');
@@ -733,6 +764,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     closeChangeBackgroundDialogBtn = document.getElementById('closeChangeBackgroundDialogBtn');
     backgroundOptionsContainer = document.getElementById('backgroundOptions');
     resetBackgroundBtn = document.getElementById('resetBackgroundBtn');
+    askNotificationPermissionDialog();
 
 
     if (changeBackgroundMenuItem) {
@@ -1735,10 +1767,15 @@ function playAlarm() {
 }
 
 function showSystemNotification(message) {
+  if (!("Notification" in window)) {
+    showAlert(message);
+    return;
+  }
+
   if (Notification.permission === "granted") {
     new Notification("Agent Break Tracker", { body: message });
   } else {
-    showAlert(message); // fallback to your custom dialog
+    showAlert(message); // fallback if denied
   }
 }
 
