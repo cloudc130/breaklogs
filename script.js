@@ -38,6 +38,7 @@ let changeBackgroundDialog;
 let closeChangeBackgroundDialogBtn;
 let backgroundOptionsContainer;
 let resetBackgroundBtn;
+let timerWorker = new Worker("timerWorker.js");
 
 const backgroundOptions = [
     { name: 'Default', url: '', thumbnail: '' }, // Empty URL for default, will reset to CSS body background
@@ -94,6 +95,47 @@ function getDeviceType() {
     }
 }
 
+timerWorker.onmessage = function(e) {
+  const { type, elapsed, message, status } = e.data;
+  const timerDisplay = document.getElementById("timer");
+  const warningTextElement = document.getElementById("timerWarning") || createTimerWarningElement();
+
+  if (type === "tick") {
+    timerDisplay.textContent = formatTime(elapsed);
+
+    // Check exceeded
+    let allowedMinutes = 0;
+    if (status === "break") {
+      allowedMinutes = parseInt(localStorage.getItem("breakDuration"), 10) || 0;
+    } else if (status === "lunch") {
+      allowedMinutes = parseInt(localStorage.getItem("lunchDuration"), 10) || 0;
+    }
+
+    if (allowedMinutes > 0 && elapsed > allowedMinutes * 60 * 1000) {
+      timerDisplay.classList.add("exceeded");
+      warningTextElement.textContent = `You have exceeded your allowed ${status} time. Please stop the timer.`;
+    } else {
+      timerDisplay.classList.remove("exceeded");
+      warningTextElement.textContent = "";
+    }
+  }
+
+  if (type === "notify") {
+    showSystemNotification(message);
+  }
+
+  if (type === "alarm") {
+    playAlarm();
+    showSystemNotification(message);
+  }
+
+  if (type === "stopped") {
+    timerDisplay.textContent = "00:00:00";
+    timerDisplay.classList.remove("exceeded");
+    warningTextElement.textContent = "";
+  }
+};
+
 function toggleLoading(isLoading) { // <--- The parameter is named 'isLoading' here
     const container = document.querySelector('.container');
     if (container) {
@@ -134,21 +176,27 @@ function updateSettingsButtonVisibility() {
 }
 
 // Function to create a custom dialog
-function createCustomDialog(message, confirmCallback, cancelCallback) {
-    const overlay = document.createElement('div');
-    overlay.className = 'overlay';
-    overlay.style.display = 'block'; // Make the overlay visible
+function createCustomDialog(
+    message,
+    confirmCallback,
+    cancelCallback,
+    confirmText = "Yes",
+    cancelText = confirmCallback ? "No" : "Close"
+) {
+    const overlay = document.createElement("div");
+    overlay.className = "overlay";
+    overlay.style.display = "block";
     document.body.appendChild(overlay);
 
-    const dialog = document.createElement('div');
-    dialog.className = 'custom-dialog';
+    const dialog = document.createElement("div");
+    dialog.className = "custom-dialog";
 
-    const messageElement = document.createElement('p');
-    messageElement.innerHTML = message; // <-- CHANGE THIS LINE
+    const messageElement = document.createElement("p");
+    messageElement.innerHTML = message;
     dialog.appendChild(messageElement);
 
-    const buttonContainer = document.createElement('div');
-    buttonContainer.className = 'button-container';
+    const buttonContainer = document.createElement("div");
+    buttonContainer.className = "button-container";
     dialog.appendChild(buttonContainer);
 
     function removeDialog() {
@@ -161,28 +209,29 @@ function createCustomDialog(message, confirmCallback, cancelCallback) {
     }
 
     if (confirmCallback) {
-        const confirmButton = document.createElement('button');
-        confirmButton.textContent = 'Yes';
-        confirmButton.className = 'custom-dialog-button confirm-button';
-        confirmButton.addEventListener('click', () => {
+        const confirmButton = document.createElement("button");
+        confirmButton.textContent = confirmText; // ✅ custom label
+        confirmButton.className = "custom-dialog-button confirm-button";
+        confirmButton.addEventListener("click", () => {
             removeDialog();
             confirmCallback();
         });
         buttonContainer.appendChild(confirmButton);
     }
 
-    const cancelButton = document.createElement('button');
-    cancelButton.textContent = confirmCallback ? 'No' : 'Close';
-    cancelButton.className = 'custom-dialog-button cancel-button';
-    cancelButton.addEventListener('click', () => {
+    const cancelButton = document.createElement("button");
+    cancelButton.textContent = cancelText; // ✅ custom label
+    cancelButton.className = "custom-dialog-button cancel-button";
+    cancelButton.addEventListener("click", () => {
         removeDialog();
-        if (cancelCallback) { cancelCallback(); }
+        if (cancelCallback) cancelCallback();
     });
     buttonContainer.appendChild(cancelButton);
 
     dialog.appendChild(buttonContainer);
-    document.body.appendChild(dialog); // Append the dialog to the body
+    document.body.appendChild(dialog);
 }
+
 
 // showAlert function remains the same
 function showAlert(message) {
@@ -1397,100 +1446,99 @@ function autoSyncPendingLogs() {
 
 
 async function startTimer(status) {
-    if (isRunning || isStopPending) return; // Check isStopPending
+    if (isRunning || isStopPending) return;
 
-    // Attempt to resend any pending logs at the start of a new timer
+    // Prevent empty timers for break/lunch
+    if (status === "break" || status === "lunch") {
+        let allowedMinutes = parseInt(localStorage.getItem(status + "Duration"), 10) || 0;
+        if (allowedMinutes <= 0) {
+        createCustomDialog(
+            `Your ${status} duration is not set. Please update your schedule first.`,
+            () => {
+                showScheduleUpdateDialog(true); // ✅ open the real update dialog
+            },
+            () => {
+                console.log(`${status} timer start canceled — schedule not set.`);
+            },
+            "Update Schedule",
+            "Cancel"
+        );
+        return;
+        }
+    }
 
     const confirmationMessage = `Are you sure you want to start the <span class="dialog-status-text"><img src="${status}.png" alt="${status} icon" class="dialog-status-icon"> ${status.charAt(0).toUpperCase() + status.slice(1)} <img src="${status}.png" alt="${status} icon" class="dialog-status-icon"></span> timer?`;
-
 
     if (status === "break" || status === "lunch" || status === "bio") {
         createCustomDialog(
             confirmationMessage,
-            async () => { // Confirm callback
-                console.log("startTimer() confirm callback for:", status); // ADDED LOG
-                isStopPending = false;  //<-- CORRECT PLACEMENT: Clear BEFORE starting new timer
+            async () => {
+                console.log("startTimer() confirm callback for:", status);
+                isStopPending = false;
                 startTime = Date.now();
-                initialStartTime = startTime; // Record the initial start time
-                const startTimestamp = new Date(startTime + (8 * 60 * 60 * 1000)).toISOString().replace("T", " ").split(".")[0]; // Capture formatted start timestamp
+                initialStartTime = startTime;
+                const startTimestamp = new Date(startTime + (8 * 60 * 60 * 1000))
+                      .toISOString().replace("T", " ").split(".")[0];
+
                 isRunning = true;
                 lastStatus = status;
-                updateSettingsButtonVisibility(); // <--- Add this
+                updateSettingsButtonVisibility();
 
                 const agentNameElement = document.getElementById("agentName");
                 const loggedInUserName = localStorage.getItem("loggedInUserName");
                 if (agentNameElement && loggedInUserName) {
-                    agentNameElement.innerHTML = `Hi, ${loggedInUserName}, you are currently on <span class="status-active-color">${status.charAt(0).toUpperCase() + status.slice(1)}</span>`;
+                    agentNameElement.innerHTML =
+                        `Hi, ${loggedInUserName}, you are currently on <span class="status-active-color">${status.charAt(0).toUpperCase() + status.slice(1)}</span>`;
                 }
 
-                // Hide break, lunch, and bio buttons
+                // Hide other buttons, show stop/history
                 document.getElementById("breakBtn").style.display = "none";
                 document.getElementById("lunchBtn").style.display = "none";
                 document.getElementById("bioBtn").style.display = "none";
-
-                // Ensure stop and history buttons are visible (they usually are, but good to be explicit)
                 document.getElementById("stopBtn").style.display = "inline-block";
                 document.getElementById("historyBtn").style.display = "inline-block";
-
-                // Disable history button while logging is in progress (will be re-enabled later)
                 document.getElementById("historyBtn").disabled = true;
+                document.getElementById("logoutBtn").style.display = "none";
 
-                document.getElementById("logoutBtn").style.display = "none"; // Hide logout button on timer start
-
+                // Save state
                 localStorage.setItem("isRunning", "true");
                 localStorage.setItem("startTime", startTime);
-                localStorage.setItem("initialStartTime", initialStartTime); // Save initial start time
+                localStorage.setItem("initialStartTime", initialStartTime);
                 localStorage.setItem("status", status);
                 localStorage.setItem("lastStatus", lastStatus);
 
-                const timerDisplay = document.getElementById("timer");
-                const warningTextElement = document.getElementById("timerWarning") || createTimerWarningElement(); // Get existing or create
-
-                let breakDuration = parseInt(localStorage.getItem("breakDuration"), 10) || 0;
-                let lunchDuration = parseInt(localStorage.getItem("lunchDuration"), 10) || 0;
-                let isExceeded = false; // Flag to track if time has been exceeded
-
-                timerInterval = setInterval(() => {
-                    let elapsedTime = Date.now() - startTime;
-                    const formattedTime = formatTime(elapsedTime);
-                    timerDisplay.textContent = formattedTime;
-
-                    let allowedDurationMinutes = 0;
-                    if (status === "break") {
-                        allowedDurationMinutes = breakDuration;
-                    } else if (status === "lunch") {
-                        allowedDurationMinutes = lunchDuration;
-                    }
-
-                    if (allowedDurationMinutes > 0 && elapsedTime > allowedDurationMinutes * 60 * 1000) {
-                        // Exceeded allowed time
-                        timerDisplay.classList.add("exceeded");
-                        warningTextElement.textContent = `You have exceeded your allowed ${status} time. Please stop the timer.`;
-                        isExceeded = true;
-                    } else {
-                        // Within allowed time
-                        timerDisplay.classList.remove("exceeded");
-                        warningTextElement.textContent = "";
-                        isExceeded = false;
-                    }
-                }, 1000);
-
-                const logResult = await logStatus(status, "", initialStartTime, null, undefined, startTimestamp); // Pass startTimestamp
-                if (!logResult) {
-                    // If logging failed, save initial start time, status, and timestamp for potential later logging
-                    localStorage.setItem("pendingStartLog", JSON.stringify({ initialStartTime: initialStartTime, status: status, timestamp: startTimestamp }));
+                // Allowed minutes
+                let allowedMinutes = 0;
+                if (status === "break") {
+                    allowedMinutes = parseInt(localStorage.getItem("breakDuration"), 10) || 0;
+                } else if (status === "lunch") {
+                    allowedMinutes = parseInt(localStorage.getItem("lunchDuration"), 10) || 0;
                 }
-                // Enable history button after start log status is done (regardless of success/failure for now)
-                document.getElementById("historyBtn").disabled = false;
 
+                // Start timer in worker
+                timerWorker.postMessage({ action: "start", data: { status, allowedMinutes } });
+
+                // Log start
+                const logResult = await logStatus(status, "", initialStartTime, null, undefined, startTimestamp);
+                if (!logResult) {
+                    localStorage.setItem("pendingStartLog", JSON.stringify({
+                        initialStartTime,
+                        status,
+                        timestamp: startTimestamp
+                    }));
+                }
+
+                document.getElementById("historyBtn").disabled = false;
             },
-            () => { // Cancel callback
+            () => {
                 console.log("Start timer cancelled for:", status);
             }
         );
     }
 }
 
+
+// --- RESTORE TIMER ---
 function restoreTimer() {
     let savedStartTime = parseInt(localStorage.getItem("startTime"), 10);
     let savedInitialStartTime = parseInt(localStorage.getItem("initialStartTime"), 10);
@@ -1500,16 +1548,15 @@ function restoreTimer() {
     const stopCompleted = localStorage.getItem("stopCompleted") === "true";
 
     if (stopCompleted) {
-        console.log("restoreTimer: Stop was successfully completed, not restoring timer.");
+        console.log("restoreTimer: Stop was completed, not restoring timer.");
         localStorage.removeItem("stopCompleted");
         enableTimerButtons();
         return;
     }
 
     if (isStopPending) {
-        // A stop was pending, don't resume timer, try to complete the stop
         console.log("restoreTimer: Resuming pending stop action...");
-        displaySendingMessage(); // Call it here, only once
+        displaySendingMessage();
         attemptCompletePendingStop();
         disableTimerButtons();
         return;
@@ -1518,84 +1565,44 @@ function restoreTimer() {
     if (!savedStartTime || !savedStatus) return;
 
     startTime = savedStartTime;
-    initialStartTime = savedInitialStartTime || savedStartTime; // Fallback if initialStartTime not present
+    initialStartTime = savedInitialStartTime || savedStartTime;
     isRunning = true;
     lastStatus = savedLastStatus;
-
-    const timerDisplay = document.getElementById("timer");
-    const warningTextElement = document.getElementById("timerWarning") || createTimerWarningElement(); // Get existing or create
-
-    let breakDuration = parseInt(localStorage.getItem("breakDuration"), 10) || 0;
-    let lunchDuration = parseInt(localStorage.getItem("lunchDuration"), 10) || 0;
-
-    // Immediately check if the restored timer has exceeded the limit
-    const elapsedTime = Date.now() - startTime;
-    let allowedDurationMinutes = 0;
-    if (savedStatus === "break") {
-        allowedDurationMinutes = breakDuration;
-    } else if (savedStatus === "lunch") {
-        allowedDurationMinutes = lunchDuration;
-    }
-
-    if (allowedDurationMinutes > 0 && elapsedTime > allowedDurationMinutes * 60 * 1000) {
-        timerDisplay.classList.add("exceeded");
-        warningTextElement.textContent = `You have exceeded your allowed ${savedStatus} time. Please stop the timer.`;
-    } else {
-        timerDisplay.classList.remove("exceeded");
-        warningTextElement.textContent = "";
-    }
 
     const agentNameElement = document.getElementById("agentName");
     const loggedInUserName = localStorage.getItem("loggedInUserName");
     if (agentNameElement && loggedInUserName) {
-        agentNameElement.innerHTML = `Hi, ${loggedInUserName}, you are currently on <span class="status-active-color">${savedStatus.charAt(0).toUpperCase() + savedStatus.slice(1)}</span>`;
+        agentNameElement.innerHTML =
+            `Hi, ${loggedInUserName}, you are currently on <span class="status-active-color">${savedStatus.charAt(0).toUpperCase() + savedStatus.slice(1)}</span>`;
     }
 
-    // Hide break, lunch, and bio buttons
+    // Hide/show buttons like before
     document.getElementById("breakBtn").style.display = "none";
     document.getElementById("lunchBtn").style.display = "none";
     document.getElementById("bioBtn").style.display = "none";
-
-    // Ensure stop and history buttons are visible
     document.getElementById("stopBtn").style.display = "inline-block";
     document.getElementById("historyBtn").style.display = "inline-block";
-    document.getElementById("historyBtn").disabled = false; // Ensure history is enabled after restoration
-    document.getElementById("logoutBtn").style.display = "none"; // Hide logout button
+    document.getElementById("historyBtn").disabled = false;
+    document.getElementById("logoutBtn").style.display = "none";
 
-    // Remove the old status message if it exists
-    let oldStatusMessage = document.getElementById("statusMessage");
-    if (oldStatusMessage) {
-        oldStatusMessage.remove();
+    // Figure out allowed minutes
+    let allowedMinutes = 0;
+    if (savedStatus === "break") {
+        allowedMinutes = parseInt(localStorage.getItem("breakDuration"), 10) || 0;
+    } else if (savedStatus === "lunch") {
+        allowedMinutes = parseInt(localStorage.getItem("lunchDuration"), 10) || 0;
     }
 
-    timerInterval = setInterval(() => {
-        let elapsedTime = Date.now() - startTime;
-        timerDisplay.textContent = formatTime(elapsedTime);
+    // Restore timer in worker
+    timerWorker.postMessage({
+        action: "restore",
+        data: { startTime: savedStartTime, status: savedStatus, allowedMinutes }
+    });
 
-        let allowedDurationMinutes = 0;
-        if (savedStatus === "break") {
-            allowedDurationMinutes = breakDuration;
-        } else if (savedStatus === "lunch") {
-            allowedDurationMinutes = lunchDuration;
-        }
-
-        if (allowedDurationMinutes > 0 && elapsedTime > allowedDurationMinutes * 60 * 1000) {
-            timerDisplay.classList.add("exceeded");
-            warningTextElement.textContent = `You have exceeded your allowed ${savedStatus} time. Please stop the timer.`;
-        } else {
-            timerDisplay.classList.remove("exceeded");
-            warningTextElement.textContent = "";
-        }
-    }, 1000);
-
-    // Store the interval ID for restoration on next load if needed (though usually cleared on stop)
-    localStorage.setItem(`intervalId_${savedStatus}`, timerInterval);
-
-    // DO NOT CALL logStatus HERE
     console.log("Timer restored on page load for status:", savedStatus);
-
-    enableTimerButtons(); // Enable action buttons if no pending stop
+    enableTimerButtons();
 }
+
 
 async function attemptCompletePendingStop() {
     const pendingStopLogData = localStorage.getItem("pendingStopLog");
@@ -1645,66 +1652,61 @@ async function attemptCompletePendingStop() {
 
 async function stopTimer() {
     if (!isRunning) return;
-    clearInterval(timerInterval);
-
-    const currentIntervalId = localStorage.getItem(`intervalId_${lastStatus}`);
-    if (currentIntervalId) {
-        clearInterval(parseInt(currentIntervalId, 10));
-        localStorage.removeItem(`intervalId_${lastStatus}`);
-    }
 
     isRunning = false;
-    updateSettingsButtonVisibility(); // <--- Add this
+    updateSettingsButtonVisibility();
     stopTime = Date.now();
-    const stopTimestamp = new Date(stopTime + (8 * 60 * 60 * 1000)).toISOString().replace("T", " ").split(".")[0];
+    const stopTimestamp = new Date(stopTime + (8 * 60 * 60 * 1000))
+          .toISOString().replace("T", " ").split(".")[0];
 
     let elapsedTime = stopTime - startTime;
     let duration = formatTime(elapsedTime);
 
     const timerDisplay = document.getElementById("timer");
     const warningTextElement = document.getElementById("timerWarning");
-    if (timerDisplay) {
-        timerDisplay.classList.remove("exceeded");
-    }
-    if (warningTextElement) {
-        warningTextElement.textContent = "";
-    }
+    if (timerDisplay) timerDisplay.classList.remove("exceeded");
+    if (warningTextElement) warningTextElement.textContent = "";
 
     document.getElementById("stopBtn").style.display = "none";
     disableTimerButtons();
 
     if (activeButton) {
-        activeButton.querySelector('.button-text').textContent = activeButton.id.charAt(0).toUpperCase() + activeButton.id.slice(1, -3);
+        activeButton.querySelector(".button-text").textContent =
+            activeButton.id.charAt(0).toUpperCase() + activeButton.id.slice(1, -3);
         activeButton.classList.remove("active-status");
         activeButton = null;
     }
 
-    // Restore original welcome message
+    // Reset welcome message
     const agentNameElement = document.getElementById("agentName");
     const loggedInUserName = localStorage.getItem("loggedInUserName");
     if (agentNameElement && loggedInUserName) {
         agentNameElement.textContent = "Welcome, " + loggedInUserName;
     }
 
-    // Show break, lunch, and bio buttons
-    document.getElementById("breakBtn").style.display = "flex"; // Assuming they are block-level for a list or flex items for column
+    // Show break/lunch/bio buttons again
+    document.getElementById("breakBtn").style.display = "flex";
     document.getElementById("lunchBtn").style.display = "flex";
     document.getElementById("bioBtn").style.display = "flex";
-
     document.getElementById("logoutBtn").style.display = "inline-block";
-    
+
+    // Mark stop pending until log confirmed
     localStorage.setItem("isStopPending", "true");
-    localStorage.removeItem("stopCompleted"); // CLEAR the flag at the start of a new stop
+    localStorage.removeItem("stopCompleted");
 
     const stopLogData = {
         status: lastStatus,
-        duration: duration,
+        duration,
         startTime: initialStartTime,
         endTime: new Date(stopTime + (8 * 60 * 60 * 1000)).toISOString().replace("T", " ").split(".")[0],
         timestamp: stopTimestamp
     };
     localStorage.setItem("pendingStopLog", JSON.stringify(stopLogData));
 
+    // Stop the worker timer
+    timerWorker.postMessage({ action: "stop" });
+
+    // Log stop
     const stopLogResult = await logStatus(lastStatus, duration, initialStartTime, stopLogData.endTime, undefined, stopTimestamp);
 
     if (stopLogResult) {
@@ -1715,7 +1717,7 @@ async function stopTimer() {
         localStorage.removeItem("lastStatus");
         localStorage.removeItem("pendingStopLog");
         localStorage.removeItem("isStopPending");
-        localStorage.removeItem("stopCompleted"); // NEW: Clear the stop completed flag
+        localStorage.removeItem("stopCompleted");
         lastStatus = "";
     } else {
         console.error("Failed to log stop status.");
@@ -1725,6 +1727,19 @@ async function stopTimer() {
     enableTimerButtons();
     document.getElementById("logoutBtn").style.display = "inline-block";
     document.getElementById("logoutBtn").disabled = false;
+}
+
+function playAlarm() {
+  const alarmAudio = new Audio("alarm.wav"); // make sure alarm.wav is in your assets
+  alarmAudio.play().catch(err => console.error("Alarm play error:", err));
+}
+
+function showSystemNotification(message) {
+  if (Notification.permission === "granted") {
+    new Notification("Agent Break Tracker", { body: message });
+  } else {
+    showAlert(message); // fallback to your custom dialog
+  }
 }
 
 function displaySendingMessage() {
