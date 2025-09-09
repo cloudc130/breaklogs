@@ -84,25 +84,27 @@
                   fill="none" stroke="white" stroke-width="2"
                   class="border-path"/>
         </svg>
-<div id="timer-section">
-    <img src="images.png" alt="Company Logo" id="companyLogo"> <h1 style="margin-bottom: 10px;">Agent Break Tracker</h1>
-    <div id="timer">00:00:00</div>
+<div id="header-section">
+    <img src="images.png" alt="Company Logo" id="companyLogo">
+    <h1 style="margin-bottom: 10px;">Agent Break Tracker</h1>
+    <!-- Hidden placeholder to avoid breaking existing JS -->
+    <div id="timer" aria-hidden="true"></div>
 </div>
 
 <div id="timerOverlay" class="timer-overlay">
   <div class="circle-timer">
     <svg class="progress-ring" viewBox="0 0 120 120">
-      <circle class="progress-ring__background" cx="60" cy="60" r="54" />
-      <circle class="progress-ring__circle" cx="60" cy="60" r="54" />
+      <circle class="progress-ring__background" cx="60" cy="60" r="54"></circle>
+      <circle class="progress-ring__circle" cx="60" cy="60" r="54"></circle>
     </svg>
     <div class="circle-content">
       <div id="overlayStatus">Status</div>
       <div id="overlayTimer">00:00:00</div>
       <button id="overlayStopBtn">Stop</button>
-      <button id="overlayExitBtn">Exit</button>
     </div>
   </div>
 </div>
+
         <div class="button-section">
             <input type="text" id="userId" placeholder="Enter your 4-digit ID" maxlength="4">
             <div class="input-container">

@@ -97,13 +97,14 @@ function getDeviceType() {
 
 timerWorker.onmessage = function(e) {
   const { type, elapsed, message, status } = e.data;
+
+  // Keep legacy timerDisplay guarded (it may not exist, we kept a hidden placeholder)
   const timerDisplay = document.getElementById("timer");
+
   const warningTextElement = document.getElementById("timerWarning") || createTimerWarningElement();
 
   if (type === "tick") {
-    timerDisplay.textContent = formatTime(elapsed);
-
-    // Check exceeded
+    // Compute allowed minutes first
     let allowedMinutes = 0;
     if (status === "break") {
       allowedMinutes = parseInt(localStorage.getItem("breakDuration"), 10) || 0;
@@ -111,14 +112,20 @@ timerWorker.onmessage = function(e) {
       allowedMinutes = parseInt(localStorage.getItem("lunchDuration"), 10) || 0;
     }
 
-      // Update overlay (handles bio = 0 correctly)
+    // Update overlay (new UI)
     updateOverlay(elapsed, status, allowedMinutes);
 
+    // Legacy inline timer (kept hidden); guard null
+    if (timerDisplay) {
+      timerDisplay.textContent = formatTime(elapsed);
+    }
+
+    // Exceeded warning (legacy)
     if (allowedMinutes > 0 && elapsed > allowedMinutes * 60 * 1000) {
-      timerDisplay.classList.add("exceeded");
+      if (timerDisplay) timerDisplay.classList.add("exceeded");
       warningTextElement.textContent = `You have exceeded your allowed ${status} time. Please stop the timer.`;
     } else {
-      timerDisplay.classList.remove("exceeded");
+      if (timerDisplay) timerDisplay.classList.remove("exceeded");
       warningTextElement.textContent = "";
     }
   }
@@ -133,21 +140,23 @@ timerWorker.onmessage = function(e) {
   }
 
   if (type === "stopped") {
-    timerDisplay.textContent = "00:00:00";
-    timerDisplay.classList.remove("exceeded");
-    warningTextElement.textContent = "";
+    // Hide focused mode when worker stops
+    if (timerOverlay) timerOverlay.style.display = "none";
+
+    if (timerDisplay) {
+      timerDisplay.textContent = "00:00:00";
+      timerDisplay.classList.remove("exceeded");
+    }
+    const warningTextElement = document.getElementById("timerWarning");
+    if (warningTextElement) warningTextElement.textContent = "";
   }
 };
+
 
 const timerOverlay = document.getElementById("timerOverlay");
 const overlayTimer = document.getElementById("overlayTimer");
 const overlayStatus = document.getElementById("overlayStatus");
 const overlayStopBtn = document.getElementById("overlayStopBtn");
-const overlayExitBtn = document.getElementById("overlayExitBtn");
-
-overlayExitBtn.addEventListener("click", () => {
-  timerOverlay.style.display = "none"; // hide focused mode
-});
 
 const circle = document.querySelector(".progress-ring__circle");
 const circumference = 2 * Math.PI * 54; // r=54
@@ -161,10 +170,13 @@ document.getElementById("timer").addEventListener("click", () => {
 });
 
 // Close overlay when Stop clicked (and also stop timer)
-overlayStopBtn.addEventListener("click", () => {
-  document.getElementById("stopBtn").click(); // trigger existing stop
-  timerOverlay.style.display = "none";
-});
+if (overlayStopBtn) {
+  overlayStopBtn.addEventListener("click", () => {
+    const stop = document.getElementById("stopBtn");
+    if (stop) stop.click();
+    if (timerOverlay) timerOverlay.style.display = "none";
+  });
+}
 
 // Update overlay with timer info
 function updateOverlay(elapsed, status, allowedMinutes) {
@@ -201,6 +213,22 @@ function updateOverlay(elapsed, status, allowedMinutes) {
     circle.style.strokeDashoffset = 0;
 
     overlayTimer.classList.remove("exceeded");
+  }
+}
+
+function applyOverlayBackground() {
+  const savedBg = localStorage.getItem("selectedBackground");
+
+  if (savedBg) {
+    timerOverlay.style.backgroundImage = `url('${savedBg}')`;
+    timerOverlay.style.backgroundSize = "cover";
+    timerOverlay.style.backgroundPosition = "center";
+    timerOverlay.style.backgroundRepeat = "no-repeat";
+    timerOverlay.style.backgroundAttachment = "fixed";
+  } else {
+    // fallback if no background selected
+    timerOverlay.style.backgroundImage = "none";
+    timerOverlay.style.backgroundColor = "black";
   }
 }
 
@@ -1617,6 +1645,16 @@ async function startTimer(status) {
 
                 // Start timer in worker
                 timerWorker.postMessage({ action: "start", data: { status, allowedMinutes } });
+                if (timerOverlay) 
+                    applyOverlayBackground();
+                    // boot effect: add booting class
+                    circle.classList.add("booting");
+                    timerOverlay.style.display = "flex";
+
+// remove boot after 1.2s and start normal updates
+                setTimeout(() => {
+                circle.classList.remove("booting");
+                }, 1500);
 
                 // Log start
                 const logResult = await logStatus(status, "", initialStartTime, null, undefined, startTimestamp);
@@ -1701,6 +1739,13 @@ function restoreTimer() {
 
     console.log("Timer restored on page load for status:", savedStatus);
     enableTimerButtons();
+    applyOverlayBackground();
+    circle.classList.add("booting");
+timerOverlay.style.display = "flex";
+
+setTimeout(() => {
+  circle.classList.remove("booting");
+}, 1500);
 }
 
 

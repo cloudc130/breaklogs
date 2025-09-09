@@ -93,6 +93,14 @@ button, input, h1, h2, td, th { /* Added table cells/headers */
     }
 }
 
+#header-section h1 {
+  font-size: 2.8rem;
+}
+
+#agentName {
+  font-size: 1.8rem;
+}
+
 #timer-section {
     width: 300px;
     text-align: left; /* Align timer text to the left */
@@ -106,6 +114,11 @@ button, input, h1, h2, td, th { /* Added table cells/headers */
     margin-bottom: 20px;
     color: #00bcd4; /* A more vibrant color for the timer */
     display: none;
+}
+
+#timer {
+  display: none !important;
+  visibility: hidden !important;
 }
 
 #timer.exceeded {
@@ -124,12 +137,26 @@ button, input, h1, h2, td, th { /* Added table cells/headers */
   left: 0;
   width: 100%;
   height: 100%;
-  background: #000000;
   display: none; /* hidden by default */
   justify-content: center;
   align-items: center;
   z-index: 2000;
   flex-direction: column;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* dark tint over the overlay background */
+.timer-overlay::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5); /* 25% opacity black */
+  z-index: 0;
 }
 
 /* Circle progress */
@@ -137,6 +164,7 @@ button, input, h1, h2, td, th { /* Added table cells/headers */
   position: relative;
   width: 500px;   /* increased from 300px */
   height: 500px;  /* increased from 300px */
+  z-index: 1; /* ensure timer and buttons are above tint */
 }
 
 .progress-ring__background {
@@ -176,6 +204,22 @@ button, input, h1, h2, td, th { /* Added table cells/headers */
   to { transform: rotate(360deg); }
 }
 
+.progress-ring__circle.booting {
+  stroke: #00bfff; /* blue while booting */
+  stroke-dasharray: 339.292; /* circumference */
+  stroke-dashoffset: 339.292;
+  animation: spin-ring 1.2s linear forwards;
+}
+
+@keyframes spin-ring {
+  from {
+    stroke-dashoffset: 339.292;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
 .circle-content {
   position: absolute;
   top: 50%;
@@ -188,6 +232,7 @@ button, input, h1, h2, td, th { /* Added table cells/headers */
   text-align: center;
   color: #f0f0f0;
   gap: 12px;                /* spacing between elements */
+  z-index: 1; /* ensure timer and buttons are above tint */
 }
 
 #overlayTimer {
@@ -210,11 +255,11 @@ button, input, h1, h2, td, th { /* Added table cells/headers */
 }
 
 #overlayStatus {
-  font-size: 1.8em;
+  font-size: 2.2em;
   font-weight: bold;
   margin-bottom: 10px;
   text-transform: capitalize;
-  color: green
+  color: yellow
 }
 
 #overlayStopBtn {
