@@ -155,7 +155,7 @@ button, input, h1, h2, td, th { /* Added table cells/headers */
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0,0,0,0.5); /* 25% opacity black */
+  background: rgba(0,0,0,0.3); /* 25% opacity black */
   z-index: 0;
 }
 
@@ -177,7 +177,7 @@ button, input, h1, h2, td, th { /* Added table cells/headers */
   fill: none;
   stroke: #00bcd4; /* default teal */
   stroke-width: 10;
-  stroke-linecap: round;
+  stroke-linecap: butt;
   stroke-dasharray: 339; /* 2πr (r=54) */
   stroke-dashoffset: 339;
   transition: stroke-dashoffset 0.5s linear, stroke 0.5s ease;
