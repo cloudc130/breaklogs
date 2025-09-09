@@ -118,6 +118,132 @@ button, input, h1, h2, td, th { /* Added table cells/headers */
     margin-top: 5px;
 }
 
+.timer-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #000000;
+  display: none; /* hidden by default */
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  flex-direction: column;
+}
+
+/* Circle progress */
+.circle-timer {
+  position: relative;
+  width: 500px;   /* increased from 300px */
+  height: 500px;  /* increased from 300px */
+}
+
+.progress-ring__background {
+  fill: none;
+  stroke: #444;
+  stroke-width: 10;
+}
+
+.progress-ring__circle {
+  fill: none;
+  stroke: #00bcd4; /* default teal */
+  stroke-width: 10;
+  stroke-linecap: round;
+  stroke-dasharray: 339; /* 2πr (r=54) */
+  stroke-dashoffset: 339;
+  transition: stroke-dashoffset 0.5s linear, stroke 0.5s ease;
+}
+
+.progress-ring {
+  width: 100%;
+  height: 100%;
+  transform-origin: center;
+}
+
+/* Bio mode = spinning */
+.progress-ring.spin {
+  animation: spin 2s linear infinite; /* slower spin looks nice */
+}
+
+/* Bio mode = spinning ring */
+.progress-ring.spin {
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.circle-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: #f0f0f0;
+}
+
+#overlayTimer {
+  font-size: 4.4em;
+  font-weight: bolder;
+  margin: 15px 0;
+  color: white; 
+  transition: color 0.3s ease;
+}
+
+/* Exceeded = red */
+#overlayTimer.exceeded {
+  color: red;
+  animation: flickerOverlay 1s infinite alternate;
+}
+
+@keyframes flickerOverlay {
+  0% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+#overlayStatus {
+  font-size: 1.8em;
+  font-weight: bold;
+  margin-bottom: 10px;
+  text-transform: capitalize;
+  color: green
+}
+
+#overlayStopBtn {
+  margin-top: 20px;
+  padding: 14px 120px;
+  font-size: 1.4em;
+  border-radius: 8px;
+  background: transparent;
+  color: #f0f0f0;
+  cursor: pointer;
+  transition: color 0.3s ease, border-color 0.3s ease;
+}
+
+#overlayStopBtn:hover {
+  color: #f44336;
+  border-color: #f44336;
+}
+
+#overlayExitBtn {
+  margin-top: 12px;
+  padding: 14px 122px;
+  font-size: 1.2em;
+  border-radius: 8px;
+  background: transparent;
+  color: #f0f0f0;
+  cursor: pointer;
+  transition: color 0.3s ease, border-color 0.3s ease;
+}
+
+#overlayExitBtn:hover {
+  color: #00bcd4;
+  border-color: #00bcd4;
+}
+
 @keyframes flickerAnimation {
     0% { opacity: 1; }
     100% { opacity: 0.5; }

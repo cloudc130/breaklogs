@@ -111,6 +111,9 @@ timerWorker.onmessage = function(e) {
       allowedMinutes = parseInt(localStorage.getItem("lunchDuration"), 10) || 0;
     }
 
+      // Update overlay (handles bio = 0 correctly)
+    updateOverlay(elapsed, status, allowedMinutes);
+
     if (allowedMinutes > 0 && elapsed > allowedMinutes * 60 * 1000) {
       timerDisplay.classList.add("exceeded");
       warningTextElement.textContent = `You have exceeded your allowed ${status} time. Please stop the timer.`;
@@ -135,6 +138,71 @@ timerWorker.onmessage = function(e) {
     warningTextElement.textContent = "";
   }
 };
+
+const timerOverlay = document.getElementById("timerOverlay");
+const overlayTimer = document.getElementById("overlayTimer");
+const overlayStatus = document.getElementById("overlayStatus");
+const overlayStopBtn = document.getElementById("overlayStopBtn");
+const overlayExitBtn = document.getElementById("overlayExitBtn");
+
+overlayExitBtn.addEventListener("click", () => {
+  timerOverlay.style.display = "none"; // hide focused mode
+});
+
+const circle = document.querySelector(".progress-ring__circle");
+const circumference = 2 * Math.PI * 54; // r=54
+circle.style.strokeDasharray = circumference;
+
+// Open overlay when timer clicked
+document.getElementById("timer").addEventListener("click", () => {
+  if (isRunning) {
+    timerOverlay.style.display = "flex";
+  }
+});
+
+// Close overlay when Stop clicked (and also stop timer)
+overlayStopBtn.addEventListener("click", () => {
+  document.getElementById("stopBtn").click(); // trigger existing stop
+  timerOverlay.style.display = "none";
+});
+
+// Update overlay with timer info
+function updateOverlay(elapsed, status, allowedMinutes) {
+  overlayTimer.textContent = formatTime(elapsed);
+  overlayStatus.textContent = status;
+
+  const ring = document.querySelector(".progress-ring");
+
+  if (allowedMinutes > 0) {
+    // Break/Lunch mode
+    ring.classList.remove("spin");
+
+    // Reset dasharray to full circle
+    circle.style.strokeDasharray = circumference;
+    const progress = Math.min(elapsed / (allowedMinutes * 60 * 1000), 1);
+    const offset = circumference - progress * circumference;
+    circle.style.strokeDashoffset = offset;
+
+    if (elapsed >= allowedMinutes * 60 * 1000) {
+      circle.style.stroke = "red";
+      overlayTimer.classList.add("exceeded");
+    } else {
+      circle.style.stroke = "#00bcd4";
+      overlayTimer.classList.remove("exceeded");
+    }
+
+  } else {
+    // Bio mode = infinite arc spinner
+    ring.classList.add("spin");
+    circle.style.stroke = "#00bcd4";
+
+    // Show only a small arc
+    circle.style.strokeDasharray = "80 259"; // arc (80px) + gap (259px)
+    circle.style.strokeDashoffset = 0;
+
+    overlayTimer.classList.remove("exceeded");
+  }
+}
 
 function toggleLoading(isLoading) { // <--- The parameter is named 'isLoading' here
     const container = document.querySelector('.container');
