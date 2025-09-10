@@ -157,10 +157,12 @@ const timerOverlay = document.getElementById("timerOverlay");
 const overlayTimer = document.getElementById("overlayTimer");
 const overlayStatus = document.getElementById("overlayStatus");
 const overlayStopBtn = document.getElementById("overlayStopBtn");
+const colors = ["#00bcd4", "#ffffff", "#4caf50", "#9c27b0", "#ffeb3b", "#e0376fff", "#3f51b5", "#1a9199f6"];
 
 const circle = document.querySelector(".progress-ring__circle");
 const circumference = 2 * Math.PI * 54; // r=54
 circle.style.strokeDasharray = circumference;
+let currentColorIndex = 0;
 
 // Open overlay when timer clicked
 document.getElementById("timer").addEventListener("click", () => {
@@ -168,6 +170,12 @@ document.getElementById("timer").addEventListener("click", () => {
     timerOverlay.style.display = "flex";
   }
 });
+
+overlayTimer.addEventListener("click", () => {
+  currentColorIndex = (currentColorIndex + 1) % colors.length;
+  circle.style.stroke = colors[currentColorIndex];
+});
+
 
 // Close overlay when Stop clicked (and also stop timer)
 if (overlayStopBtn) {
@@ -199,14 +207,14 @@ function updateOverlay(elapsed, status, allowedMinutes) {
       circle.style.stroke = "red";
       overlayTimer.classList.add("exceeded");
     } else {
-      circle.style.stroke = "#00bcd4";
+      circle.style.stroke = colors[currentColorIndex]; // user’s color choi
       overlayTimer.classList.remove("exceeded");
     }
 
   } else {
     // Bio mode = infinite arc spinner
     ring.classList.add("spin");
-    circle.style.stroke = "#00bcd4";
+    circle.style.stroke = colors[currentColorIndex]; // user’s color choi
 
     // Show only a small arc
     circle.style.strokeDasharray = "80 259"; // arc (80px) + gap (259px)
@@ -214,6 +222,11 @@ function updateOverlay(elapsed, status, allowedMinutes) {
 
     overlayTimer.classList.remove("exceeded");
   }
+}
+
+function resetProgressRingColor() {
+  currentColorIndex = 0;
+  circle.style.stroke = colors[currentColorIndex]; // reset to default teal
 }
 
 function applyOverlayBackground() {
@@ -1799,6 +1812,7 @@ async function stopTimer() {
     if (!isRunning) return;
 
     isRunning = false;
+    resetProgressRingColor();
     updateSettingsButtonVisibility();
     stopTime = Date.now();
     const stopTimestamp = new Date(stopTime + (8 * 60 * 60 * 1000))
