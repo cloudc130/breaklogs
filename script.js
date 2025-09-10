@@ -192,6 +192,13 @@ function updateOverlay(elapsed, status, allowedMinutes) {
   overlayStatus.textContent = status;
 
   const ring = document.querySelector(".progress-ring");
+  const overlayAllowed = document.getElementById("overlayAllowed");
+
+  if (allowedMinutes > 0) {
+    overlayAllowed.textContent = `Duration: ${allowedMinutes} min`;
+  } else {
+    overlayAllowed.textContent = "Duration: N/A";
+  }
 
   if (allowedMinutes > 0) {
     // Break/Lunch mode

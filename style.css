@@ -249,6 +249,13 @@ button, input, h1, h2, td, th { /* Added table cells/headers */
   animation: flickerOverlay 1s infinite alternate;
 }
 
+#overlayAllowed {
+  margin-top: 10px;
+  font-size: 1.2rem;
+  font-weight: 400;
+  color: #ccc;
+}
+
 @keyframes flickerOverlay {
   0% { opacity: 1; }
   100% { opacity: 0.6; }
