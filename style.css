@@ -250,8 +250,7 @@ button, input, h1, h2, td, th { /* Added table cells/headers */
 }
 
 #overlayAllowed {
-  margin-top: 10px;
-  font-size: 1.2rem;
+  font-size: 1.0rem;
   font-weight: 400;
   color: #ccc;
 }
