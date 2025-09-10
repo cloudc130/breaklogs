@@ -74,6 +74,15 @@ const backgroundOptions = [
 
 const timerDisplay = document.getElementById("timer");
 
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/service-worker.js")
+      .then((reg) => console.log("Service Worker registered:", reg.scope))
+      .catch((err) => console.error("Service Worker registration failed:", err));
+  });
+}
+
 window.addEventListener('online', () => {
     console.log("Network back online — attempting to sync pending logs...");
     autoSyncPendingLogs();
