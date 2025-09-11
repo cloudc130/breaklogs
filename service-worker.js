@@ -1,4 +1,4 @@
-const CACHE_NAME = "break-tracker-v2";
+const CACHE_NAME = "break-tracker-v3";
 
 // Files to cache (adjust based on your setup)
 const FILES_TO_CACHE = [
@@ -32,21 +32,30 @@ self.addEventListener("install", (event) => {
   );
 });
 
+self.addEventListener("message", (event) => {
+    if (event.data && event.data.action === "skipWaiting") {
+        self.skipWaiting();
+    }
+});
+
 // Activate event → cleanup old caches
 self.addEventListener("activate", (event) => {
-  console.log("Service Worker activating and cleaning up old caches...");
-  event.waitUntil(
-    caches.keys().then((keyList) =>
-      Promise.all(
-        keyList.map((key) => {
-          if (key !== CACHE_NAME) {
-            console.log("Service Worker removing old cache:", key);
-            return caches.delete(key);
-          }
+    console.log("Service Worker activating and claiming clients...");
+    event.waitUntil(
+        caches.keys().then((keyList) =>
+            Promise.all(
+                keyList.map((key) => {
+                    if (key !== CACHE_NAME) {
+                        console.log("Service Worker removing old cache:", key);
+                        return caches.delete(key);
+                    }
+                })
+            )
+        ).then(() => {
+            // Claim all clients immediately so the new Service Worker can control them
+            return self.clients.claim();
         })
-      )
-    )
-  );
+    );
 });
 
 // Fetch event → serve from cache, fall back to network

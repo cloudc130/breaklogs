@@ -76,9 +76,42 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker
       .register("/service-worker.js")
-      .then((reg) => console.log("Service Worker registered:", reg.scope))
+      .then((reg) => {
+        console.log("Service Worker registered:", reg.scope);
+        // Add a listener to detect when a new worker is waiting
+        reg.addEventListener("updatefound", () => {
+          const newWorker = reg.installing;
+          newWorker.addEventListener("statechange", () => {
+            // The new Service Worker is ready to take over
+            if (newWorker.state === "installed") {
+              // Now we can notify the user
+              if (navigator.serviceWorker.controller) {
+                // A new version is available, but the old one is still running.
+                // We can now ask the user to update or do it automatically.
+                console.log("A new version is available. Prompting user to reload...");
+                // Send a message to the new worker to tell it to skip waiting and activate
+                newWorker.postMessage({ action: "skipWaiting" });
+                // Now, show the update prompt.
+                showUpdatePrompt();
+              } else {
+                // The first time the Service Worker is registered, we won't have a controller
+                console.log("Content is now available offline.");
+              }
+            }
+          });
+        });
+      })
       .catch((err) => console.error("Service Worker registration failed:", err));
   });
+}
+
+function showUpdatePrompt() {
+    // This function will display a UI element (like a modal or a banner)
+    // telling the user that a new version is available and asking them to reload.
+    // For now, let's just use a simple alert.
+    if (confirm("A new version of the application is available. Do you want to update now?")) {
+        window.location.reload(); // Reloads the page to load the new Service Worker and files
+    }
 }
 
 async function isActuallyOnline() {
