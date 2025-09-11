@@ -6,10 +6,8 @@ let isRunning = false;
 let isLoading = false; 
 let loggedInUserId = "";
 const apiUrl = "https://script.google.com/macros/s/AKfycbwz8RFdHxl5FEexE7vIuGpW5hMKFRTzrXavHuxIqvJ7RwpIlpwdkbffe62fnfYUCH38hQ/exec";
-let lastStatus = "";
+let lastStatus = "";                                                                                                                                                            
 let lastAlertTime = 0;
-let failedStartLog = null; // Add this line
-let isStopPending = false; // New flag to track pending stop
 let settingsButton; // Declare it here
 let resetPasswordDialog;
 let resetPasswordMenuItem;
@@ -83,9 +81,34 @@ if ("serviceWorker" in navigator) {
   });
 }
 
-window.addEventListener('online', () => {
-    console.log("Network back online — attempting to sync pending logs...");
-    autoSyncPendingLogs();
+async function isActuallyOnline() {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000); // 3s timeout
+    await fetch("https://script.google.com/macros/s/AKfycbwz8RFdHxl5FEexE7vIuGpW5hMKFRTzrXavHuxIqvJ7RwpIlpwdkbffe62fnfYUCH38hQ/exec", {
+      method: "GET",
+      cache: "no-cache",
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    return true;
+  } catch (err) {
+    console.warn("Connectivity check failed:", err);
+    return false;
+  }
+}
+
+window.addEventListener("online", async () => {
+  console.log("Network event: online detected, verifying connection...");
+  if (await isActuallyOnline()) {
+    console.log("Confirmed internet access. Resuming log worker.");
+    logWorker.postMessage({ action: "flush" });
+  } else {
+    console.warn("Still no internet access. Will retry check in 10s.");
+    setTimeout(async () => {
+      if (await isActuallyOnline()) logWorker.postMessage({ action: "flush" });
+    }, 10000);
+  }
 });
 
 function getDeviceType() {
@@ -1039,28 +1062,12 @@ if (resetPasswordNewCancelBtn) {
     if (resetScheduleButton) {
          resetScheduleButton.addEventListener('click', () => {
         // --- NEW: Check for pending log in local storage ---
-            const failedStartLog = localStorage.getItem("failedStartLog");
-            const pendingStartLog = localStorage.getItem("pendingStartLog");
-            const pendingStopLog = localStorage.getItem("pendingStopLog");
-
-            if (failedStartLog) {
-            // Display an error message if a pending log exists
-            showAlert("Cannot reset schedule: There is a pending log entry from a failed start/stop. Please contact support.", 7000, 'error');
-            console.error("Reset schedule blocked: Pending log exists in localStorage:", failedStartLog);
-            return; // Stop the function execution
-            }
-            if (pendingStartLog) {
-            // Display an error message if a pending log exists
-            showAlert("Cannot reset schedule: There is a pending log entry from a failed start/stop. Please contact support.", 7000, 'error');
-            console.error("Reset schedule blocked: Pending log exists in localStorage:", pendingStartLog);
-            return; // Stop the function execution
-            }
-            if (pendingStopLog) {
-            // Display an error message if a pending log exists
-            showAlert("Cannot reset schedule: There is a pending log entry from a failed start/stop. Please contact support.", 7000, 'error');
-            console.error("Reset schedule blocked: Pending log exists in localStorage:", pendingStopLog);
-            return; // Stop the function execution
-            }
+            const pendingLogs = JSON.parse(localStorage.getItem("pendingLogs") || "[]");
+if (pendingLogs.length > 0) {
+    showAlert("Cannot reset schedule: There are unsent logs. Please contact support.");
+    console.error("Reset schedule blocked: Pending logs exist in localStorage:", pendingLogs);
+    return;
+}
         // --- END NEW CHECK ---
 
            removeScheduleDialog();
@@ -1513,195 +1520,118 @@ function hideUserInfoDialog() {
 
 let activeButton = null; // Store reference to the active button
 
-async function resendPendingLogs() {
-    const pendingStartLogData = localStorage.getItem("pendingStartLog");
-    const pendingStopLogData = localStorage.getItem("pendingStopLog");
-
-    let allSynced = true; // track if everything was successful
-
-    if (pendingStartLogData) {
-        const startLogData = JSON.parse(pendingStartLogData);
-        console.log("Attempting to resend pending start log (on auto-sync):", startLogData);
-        const startSuccess = await logStatus(
-            startLogData.status,
-            "",
-            startLogData.initialStartTime,
-            "",
-            undefined,
-            startLogData.timestamp
-        );
-        if (startSuccess) {
-            localStorage.removeItem("pendingStartLog");
-            localStorage.removeItem("startTime");
-            localStorage.removeItem("initialStartTime");
-            localStorage.removeItem("failedStartLog");
-            console.log("Pending start log resent successfully!");
-        } else {
-            console.error("Failed to resend pending start log.");
-            allSynced = false;
-        }
-    }
-
-    if (pendingStopLogData) {
-        const stopLogData = JSON.parse(pendingStopLogData);
-        console.log("Attempting to resend pending stop log (on auto-sync):", stopLogData);
-        const stopSuccess = await logStatus(
-            stopLogData.status,
-            stopLogData.duration,
-            stopLogData.startTime,
-            stopLogData.endTime,
-            undefined,
-            stopLogData.timestamp
-        );
-        if (stopSuccess) {
-            localStorage.removeItem("pendingStopLog");
-            localStorage.removeItem("retryScheduled"); 
-            localStorage.removeItem("isRunning");
-            localStorage.removeItem("startTime");
-            localStorage.removeItem("initialStartTime");
-            localStorage.removeItem("status");
-            localStorage.removeItem("lastStatus");
-            localStorage.removeItem("isStopPending");
-            localStorage.removeItem("stopCompleted");
-            console.log("Pending stop log resent successfully and timer state cleared!");
-        } else {
-            console.error("Failed to resend pending stop log.");
-            allSynced = false;
-        }
-    }
-
-    localStorage.removeItem("retryScheduled");
-
-    return allSynced;
-}
-
 function autoSyncPendingLogs() {
-    if (!localStorage.getItem("pendingStartLog") && !localStorage.getItem("pendingStopLog")) {
-        console.log("No pending logs to sync.");
-        return;
-    }
-
-    console.log("Pending logs detected, starting auto-sync...");
-
-    let delay = 3000; // start at 3s
-    const maxDelay = 30000; // cap at 30s
-
-    const attemptSync = async () => {
-        const success = await resendPendingLogs();
-        if (success) {
-            console.log("All pending logs synced successfully.");
-            showAlert("Your break/lunch logs were synced after reconnecting!");
-        } else {
-            delay = Math.min(delay * 2, maxDelay);
-            console.log(`Some logs still pending. Retrying in ${delay}ms...`);
-            setTimeout(attemptSync, delay);
-        }
-    };
-
-    attemptSync();
+    console.log("Triggering worker to resend logs...");
+    logWorker.postMessage({ action: "resendLogs" });
 }
-
 
 async function startTimer(status) {
-    if (isRunning || isStopPending) return;
+    if (isRunning) return;
 
     // Prevent empty timers for break/lunch
     if (status === "break" || status === "lunch") {
         let allowedMinutes = parseInt(localStorage.getItem(status + "Duration"), 10) || 0;
         if (allowedMinutes <= 0) {
-        createCustomDialog(
-            `Your ${status} duration is not set. Please update your schedule first.`,
-            () => {
-                showScheduleUpdateDialog(true); // ✅ open the real update dialog
-            },
-            () => {
-                console.log(`${status} timer start canceled — schedule not set.`);
-            },
-            "Update Schedule",
-            "Cancel"
-        );
-        return;
+            createCustomDialog(
+                `Your ${status} duration is not set. Please update your schedule first.`,
+                () => showScheduleUpdateDialog(true),
+                () => console.log(`${status} timer start canceled — schedule not set.`),
+                "Update Schedule",
+                "Cancel"
+            );
+            return;
         }
     }
 
-    const confirmationMessage = `Are you sure you want to start the <span class="dialog-status-text"><img src="${status}.png" alt="${status} icon" class="dialog-status-icon"> ${status.charAt(0).toUpperCase() + status.slice(1)} <img src="${status}.png" alt="${status} icon" class="dialog-status-icon"></span> timer?`;
+    const confirmationMessage = `Are you sure you want to start the 
+        <span class="dialog-status-text">
+            <img src="${status}.png" alt="${status} icon" class="dialog-status-icon">
+            ${status.charAt(0).toUpperCase() + status.slice(1)}
+            <img src="${status}.png" alt="${status} icon" class="dialog-status-icon">
+        </span> timer?`;
 
-    if (status === "break" || status === "lunch" || status === "bio") {
-        createCustomDialog(
-            confirmationMessage,
-            async () => {
-                console.log("startTimer() confirm callback for:", status);
-                isStopPending = false;
-                startTime = Date.now();
-                initialStartTime = startTime;
-                const startTimestamp = new Date(startTime + (8 * 60 * 60 * 1000))
-                      .toISOString().replace("T", " ").split(".")[0];
+    createCustomDialog(
+        confirmationMessage,
+        async () => {
+            console.log("startTimer() confirm callback for:", status);
 
-                isRunning = true;
-                lastStatus = status;
-                updateSettingsButtonVisibility();
+            startTime = Date.now();
+            initialStartTime = startTime;
+            const startTimestamp = new Date(startTime + (8 * 60 * 60 * 1000))
+                .toISOString()
+                .replace("T", " ")
+                .split(".")[0];
 
-                const agentNameElement = document.getElementById("agentName");
-                const loggedInUserName = localStorage.getItem("loggedInUserName");
-                if (agentNameElement && loggedInUserName) {
-                    agentNameElement.innerHTML =
-                        `Hi, ${loggedInUserName}, you are currently on <span class="status-active-color">${status.charAt(0).toUpperCase() + status.slice(1)}</span>`;
-                }
+            isRunning = true;
+            lastStatus = status;
+            updateSettingsButtonVisibility();
 
-                // Hide other buttons, show stop/history
-                document.getElementById("breakBtn").style.display = "none";
-                document.getElementById("lunchBtn").style.display = "none";
-                document.getElementById("bioBtn").style.display = "none";
-                document.getElementById("stopBtn").style.display = "inline-block";
-                document.getElementById("historyBtn").style.display = "inline-block";
-                document.getElementById("historyBtn").disabled = true;
-                document.getElementById("logoutBtn").style.display = "none";
-
-                // Save state
-                localStorage.setItem("isRunning", "true");
-                localStorage.setItem("startTime", startTime);
-                localStorage.setItem("initialStartTime", initialStartTime);
-                localStorage.setItem("status", status);
-                localStorage.setItem("lastStatus", lastStatus);
-
-                // Allowed minutes
-                let allowedMinutes = 0;
-                if (status === "break") {
-                    allowedMinutes = parseInt(localStorage.getItem("breakDuration"), 10) || 0;
-                } else if (status === "lunch") {
-                    allowedMinutes = parseInt(localStorage.getItem("lunchDuration"), 10) || 0;
-                }
-
-                // Start timer in worker
-                timerWorker.postMessage({ action: "start", data: { status, allowedMinutes } });
-                if (timerOverlay) 
-                    applyOverlayBackground();
-                    // boot effect: add booting class
-                    circle.classList.add("booting");
-                    timerOverlay.style.display = "flex";
-
-// remove boot after 1.2s and start normal updates
-                setTimeout(() => {
-                circle.classList.remove("booting");
-                }, 1500);
-
-                // Log start
-                const logResult = await logStatus(status, "", initialStartTime, null, undefined, startTimestamp);
-                if (!logResult) {
-                    localStorage.setItem("pendingStartLog", JSON.stringify({
-                        initialStartTime,
-                        status,
-                        timestamp: startTimestamp
-                    }));
-                }
-
-                document.getElementById("historyBtn").disabled = false;
-            },
-            () => {
-                console.log("Start timer cancelled for:", status);
+            const agentNameElement = document.getElementById("agentName");
+            const loggedInUserName = localStorage.getItem("loggedInUserName");
+            if (agentNameElement && loggedInUserName) {
+                agentNameElement.innerHTML =
+                    `Hi, ${loggedInUserName}, you are currently on 
+                    <span class="status-active-color">
+                        ${status.charAt(0).toUpperCase() + status.slice(1)}
+                    </span>`;
             }
-        );
-    }
+
+            // Update UI buttons
+            document.getElementById("breakBtn").style.display = "none";
+            document.getElementById("lunchBtn").style.display = "none";
+            document.getElementById("bioBtn").style.display = "none";
+            document.getElementById("stopBtn").style.display = "inline-block";
+            document.getElementById("historyBtn").style.display = "inline-block";
+            document.getElementById("historyBtn").disabled = true;
+            document.getElementById("logoutBtn").style.display = "none";
+
+            // Save state locally (for restore after refresh)
+            localStorage.setItem("isRunning", "true");
+            localStorage.setItem("startTime", startTime);
+            localStorage.setItem("initialStartTime", initialStartTime);
+            localStorage.setItem("status", status);
+            localStorage.setItem("lastStatus", lastStatus);
+
+            // Allowed minutes
+            let allowedMinutes = 0;
+            if (status === "break") {
+                allowedMinutes = parseInt(localStorage.getItem("breakDuration"), 10) || 0;
+            } else if (status === "lunch") {
+                allowedMinutes = parseInt(localStorage.getItem("lunchDuration"), 10) || 0;
+            }
+
+            // Start timer in worker
+            timerWorker.postMessage({ action: "start", data: { status, allowedMinutes } });
+
+            if (timerOverlay) {
+                applyOverlayBackground();
+                circle.classList.add("booting");
+                timerOverlay.style.display = "flex";
+                setTimeout(() => circle.classList.remove("booting"), 1500);
+            }
+
+            // ✅ Queue start log in logWorker
+const startLogData = {
+  userId: loggedInUserId,
+  name: loggedInUserName,
+  status: status,                  // break, lunch, bio
+  device: getDeviceType(),
+  timestamp: startTimestamp,
+  duration: "",                    // <--- empty string = start/pending
+  expectedDurationMinutes:
+    status === "break"
+      ? parseInt(localStorage.getItem("breakDuration"), 10) || 0
+      : status === "lunch"
+      ? parseInt(localStorage.getItem("lunchDuration"), 10) || 0
+      : 0,
+};
+
+// ✅ Send to worker
+logWorker.postMessage({ action: "saveLog", data: startLogData });
+            document.getElementById("historyBtn").disabled = false;
+        },
+        () => console.log("Start timer cancelled for:", status)
+    );
 }
 
 
@@ -1711,23 +1641,6 @@ function restoreTimer() {
     let savedInitialStartTime = parseInt(localStorage.getItem("initialStartTime"), 10);
     let savedStatus = localStorage.getItem("status");
     let savedLastStatus = localStorage.getItem("lastStatus");
-    isStopPending = localStorage.getItem("isStopPending") === "true";
-    const stopCompleted = localStorage.getItem("stopCompleted") === "true";
-
-    if (stopCompleted) {
-        console.log("restoreTimer: Stop was completed, not restoring timer.");
-        localStorage.removeItem("stopCompleted");
-        enableTimerButtons();
-        return;
-    }
-
-    if (isStopPending) {
-        console.log("restoreTimer: Resuming pending stop action...");
-        displaySendingMessage();
-        attemptCompletePendingStop();
-        disableTimerButtons();
-        return;
-    }
 
     if (!savedStartTime || !savedStatus) return;
 
@@ -1740,10 +1653,13 @@ function restoreTimer() {
     const loggedInUserName = localStorage.getItem("loggedInUserName");
     if (agentNameElement && loggedInUserName) {
         agentNameElement.innerHTML =
-            `Hi, ${loggedInUserName}, you are currently on <span class="status-active-color">${savedStatus.charAt(0).toUpperCase() + savedStatus.slice(1)}</span>`;
+            `Hi, ${loggedInUserName}, you are currently on 
+            <span class="status-active-color">
+                ${savedStatus.charAt(0).toUpperCase() + savedStatus.slice(1)}
+            </span>`;
     }
 
-    // Hide/show buttons like before
+    // Update UI buttons
     document.getElementById("breakBtn").style.display = "none";
     document.getElementById("lunchBtn").style.display = "none";
     document.getElementById("bioBtn").style.display = "none";
@@ -1752,7 +1668,6 @@ function restoreTimer() {
     document.getElementById("historyBtn").disabled = false;
     document.getElementById("logoutBtn").style.display = "none";
 
-    // Figure out allowed minutes
     let allowedMinutes = 0;
     if (savedStatus === "break") {
         allowedMinutes = parseInt(localStorage.getItem("breakDuration"), 10) || 0;
@@ -1760,7 +1675,6 @@ function restoreTimer() {
         allowedMinutes = parseInt(localStorage.getItem("lunchDuration"), 10) || 0;
     }
 
-    // Restore timer in worker
     timerWorker.postMessage({
         action: "restore",
         data: { startTime: savedStartTime, status: savedStatus, allowedMinutes }
@@ -1770,59 +1684,11 @@ function restoreTimer() {
     enableTimerButtons();
     applyOverlayBackground();
     circle.classList.add("booting");
-timerOverlay.style.display = "flex";
+    timerOverlay.style.display = "flex";
 
-setTimeout(() => {
-  circle.classList.remove("booting");
-}, 1500);
+    setTimeout(() => circle.classList.remove("booting"), 1500);
 }
 
-
-async function attemptCompletePendingStop() {
-    const pendingStopLogData = localStorage.getItem("pendingStopLog");
-    if (pendingStopLogData) {
-        const stopLogData = JSON.parse(pendingStopLogData);
-        console.log("attemptCompletePendingStop: Attempting to resend:", stopLogData);
-
-        // DO NOT call displaySendingMessage() here
-
-        const stopSuccess = await logStatus(
-            stopLogData.status,
-            stopLogData.duration,
-            stopLogData.startTime,
-            stopLogData.endTime,
-            undefined,
-            stopLogData.timestamp
-        );
-        console.log("attemptCompletePendingStop: logStatus result:", stopSuccess);
-
-        if (stopSuccess) {
-            localStorage.removeItem("pendingStopLog");
-            localStorage.removeItem("isStopPending");
-            localStorage.removeItem("startTime");
-            localStorage.removeItem("initialStartTime");
-            localStorage.removeItem("status");
-            localStorage.removeItem("lastStatus");
-            localStorage.setItem("stopCompleted", "true");
-            console.log("attemptCompletePendingStop: Pending stop log resent successfully! Reloading page.");
-            showAlert("Pending stop log resent successfully! Page will reload.");
-            clearSendingMessage(); // Ensure it's cleared before reload
-            // enableTimerButtons(); // No need to enable before reload
-            window.location.reload(); // FORCE PAGE RELOAD
-        } else {
-            console.error("attemptCompletePendingStop: Failed to resend pending stop log.");
-            showAlert("Failed to resend pending stop log. Please try again.");
-            clearSendingMessage(); // Ensure it's cleared even on failure
-            enableTimerButtons();
-        }
-    } else {
-        if (localStorage.getItem("isStopPending") === "true") {
-            console.warn("attemptCompletePendingStop: No pending stop log found, but isStopPending was true.");
-        }
-        localStorage.removeItem("isStopPending");
-        enableTimerButtons();
-    }
-}
 
 async function stopTimer() {
     if (!isRunning) return;
@@ -1830,9 +1696,12 @@ async function stopTimer() {
     isRunning = false;
     resetProgressRingColor();
     updateSettingsButtonVisibility();
+
     stopTime = Date.now();
     const stopTimestamp = new Date(stopTime + (8 * 60 * 60 * 1000))
-          .toISOString().replace("T", " ").split(".")[0];
+        .toISOString()
+        .replace("T", " ")
+        .split(".")[0];
 
     let elapsedTime = stopTime - startTime;
     let duration = formatTime(elapsedTime);
@@ -1852,57 +1721,55 @@ async function stopTimer() {
         activeButton = null;
     }
 
-    // Reset welcome message
     const agentNameElement = document.getElementById("agentName");
     const loggedInUserName = localStorage.getItem("loggedInUserName");
     if (agentNameElement && loggedInUserName) {
         agentNameElement.textContent = "Welcome, " + loggedInUserName;
     }
 
-    // Show break/lunch/bio buttons again
+    // Show main buttons again
     document.getElementById("breakBtn").style.display = "flex";
     document.getElementById("lunchBtn").style.display = "flex";
     document.getElementById("bioBtn").style.display = "flex";
     document.getElementById("logoutBtn").style.display = "inline-block";
 
-    // Mark stop pending until log confirmed
-    localStorage.setItem("isStopPending", "true");
-    localStorage.removeItem("stopCompleted");
-
-    const stopLogData = {
-        status: lastStatus,
-        duration,
-        startTime: initialStartTime,
-        endTime: new Date(stopTime + (8 * 60 * 60 * 1000)).toISOString().replace("T", " ").split(".")[0],
-        timestamp: stopTimestamp
-    };
-    localStorage.setItem("pendingStopLog", JSON.stringify(stopLogData));
-
-    // Stop the worker timer
+    // Stop worker timer
     timerWorker.postMessage({ action: "stop" });
 
-    // Log stop
-    const stopLogResult = await logStatus(lastStatus, duration, initialStartTime, stopLogData.endTime, undefined, stopTimestamp);
+    // ✅ Queue stop log
+const stopLogData = {
+  userId: loggedInUserId,
+  name: loggedInUserName,
+  status: lastStatus,
+  device: getDeviceType(),
+  timestamp: stopTimestamp,
+  duration, // <--- non-empty string = stop log
+  expectedDurationMinutes:
+    lastStatus === "break"
+      ? parseInt(localStorage.getItem("breakDuration"), 10) || 0
+      : lastStatus === "lunch"
+      ? parseInt(localStorage.getItem("lunchDuration"), 10) || 0
+      : 0,
+};
 
-    if (stopLogResult) {
-        localStorage.removeItem("isRunning");
-        localStorage.removeItem("startTime");
-        localStorage.removeItem("initialStartTime");
-        localStorage.removeItem("status");
-        localStorage.removeItem("lastStatus");
-        localStorage.removeItem("pendingStopLog");
-        localStorage.removeItem("isStopPending");
-        localStorage.removeItem("stopCompleted");
-        lastStatus = "";
-    } else {
-        console.error("Failed to log stop status.");
-    }
+// ✅ Send to worker
+logWorker.postMessage({ action: "saveLog", data: stopLogData });
+
+    // Clear timer state locally (UI only)
+    localStorage.removeItem("isRunning");
+    localStorage.removeItem("startTime");
+    localStorage.removeItem("initialStartTime");
+    localStorage.removeItem("status");
+    localStorage.removeItem("lastStatus");
+    lastStatus = "";
 
     document.getElementById("timer").textContent = "00:00:00";
     enableTimerButtons();
     document.getElementById("logoutBtn").style.display = "inline-block";
     document.getElementById("logoutBtn").disabled = false;
 }
+
+
 
 function playAlarm() {
   const alarmAudio = new Audio("alarm.wav"); // make sure alarm.wav is in your assets
@@ -1922,25 +1789,59 @@ function showSystemNotification(message) {
   }
 }
 
-function displaySendingMessage() {
-    let sendingMessage = document.createElement("div");
-    sendingMessage.id = "sendingMessage";
-    sendingMessage.textContent = "Sending...";
-    sendingMessage.style.color = "blue";
-    const controlsDiv = document.getElementById("controls");
-    if (controlsDiv) {
-        controlsDiv.appendChild(sendingMessage);
-    } else {
-        console.error("displaySendingMessage: Could not find 'controls' div.");
-    }
+function showSendingOverlay() {
+  let overlay = document.getElementById("sendingOverlay");
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.id = "sendingOverlay";
+    overlay.style.position = "fixed";
+    overlay.style.top = "0";
+    overlay.style.left = "0";
+    overlay.style.width = "100%";
+    overlay.style.height = "100%";
+    overlay.style.background = "rgba(0,0,0,0.3)";
+    overlay.style.zIndex = "3000";
+    overlay.style.display = "flex";
+    overlay.style.justifyContent = "center";
+    overlay.style.alignItems = "center";
+    overlay.style.pointerEvents = "auto"; // Block clicks
+    overlay.innerHTML = `<div style="color: white; font-size: 18px;">Sending...</div>`;
+    document.body.appendChild(overlay);
+  } else {
+    overlay.style.display = "flex";
+  }
 }
 
-function clearSendingMessage() {
-    const sendingMessage = document.getElementById("sendingMessage");
-    if (sendingMessage) {
-        sendingMessage.remove();
-    }
+function hideSendingOverlay() {
+  const overlay = document.getElementById("sendingOverlay");
+  if (overlay) {
+    overlay.style.display = "none";
+  }
 }
+
+function showSentDialog() {
+  let dialog = document.createElement("div");
+  dialog.className = "sent-dialog";
+  dialog.textContent = "Sent!";
+  dialog.style.position = "fixed";
+  dialog.style.top = "50%";
+  dialog.style.left = "50%";
+  dialog.style.transform = "translate(-50%, -50%)";
+  dialog.style.background = "rgba(0, 0, 0, 0.8)";
+  dialog.style.color = "lime";
+  dialog.style.padding = "15px 25px";
+  dialog.style.borderRadius = "10px";
+  dialog.style.fontSize = "18px";
+  dialog.style.zIndex = "4000";
+  document.body.appendChild(dialog);
+
+  setTimeout(() => {
+    if (dialog && dialog.parentNode) {
+      dialog.parentNode.removeChild(dialog);
+    }
+  }, 1500);
+}
+
 
 function disableTimerButtons() {
     document.getElementById("breakBtn").disabled = true;
@@ -1971,105 +1872,54 @@ function createTimerWarningElement() {
     return warningElement;
 }
 
-async function logStatus(status, duration = "", startTimeOverride = null, endTimeOverride = null, retryCount = 3, timestampOverride = null) {
-    console.log("Log Status called with timestampOverride:", timestampOverride); // DEBUG LOG
-    let attempts = 0;
-    let successIndicator = document.createElement("div");
-    successIndicator.textContent = "Sending...";
-    successIndicator.style.color = "blue";
-    document.getElementById("controls").appendChild(successIndicator);
-    let isSuccess = false;
-    let currentLogData = {
-        userId: loggedInUserId,
-        name: document.getElementById("agentName").textContent.replace("Welcome, ", ""),
-        status: status.replace(" pending", ""),
-        device: getDeviceType(),
-        timestamp: timestampOverride ? timestampOverride : new Date(Date.now() + (8 * 60 * 60 * 1000)).toISOString().replace("T", " ").split(".")[0]
-    };
-    console.log("Current Log Data Timestamp:", currentLogData.timestamp); // DEBUG LOG
+function logStatus(status, duration = "", startTimeOverride = null, endTimeOverride = null, timestampOverride = null) {
+  const currentLogData = {
+    userId: loggedInUserId,
+    name: document.getElementById("agentName").textContent.replace("Welcome, ", ""),
+    status: status.replace(" pending", ""),
+    device: getDeviceType(),
+    timestamp: timestampOverride
+      ? timestampOverride
+      : new Date(Date.now() + (8 * 60 * 60 * 1000))
+          .toISOString()
+          .replace("T", " ")
+          .split(".")[0],
+    duration,
+    startTime: startTimeOverride
+      ? new Date(startTimeOverride).toISOString().replace("T", " ").split(".")[0]
+      : undefined,
+    endTime: endTimeOverride
+      ? new Date(endTimeOverride).toISOString().replace("T", " ").split(".")[0]
+      : undefined,
+  };
 
-    const savedBreakDuration = localStorage.getItem("breakDuration");
-    const savedLunchDuration = localStorage.getItem("lunchDuration");
-
-    // Retrieve break and lunch durations from localStorage
-    // Conditionally update expectedDurationMinutes only for break and lunch
-    if (status.includes("break")) {
-        let parsedDuration = parseInt(savedBreakDuration, 10);
-        currentLogData.expectedDurationMinutes = isNaN(parsedDuration) ? 0 : parsedDuration;
-    } else if (status.includes("lunch")) {
-        let parsedDuration = parseInt(savedLunchDuration, 10);
-        currentLogData.expectedDurationMinutes = isNaN(parsedDuration) ? 0 : parsedDuration;
-    } else if (status.includes("bio")) {
-        currentLogData.expectedDurationMinutes = 0;
-    }
-
-    // NEW: Debug log to confirm the expectedDurationMinutes being sent
-    console.log("Debug - Expected Duration for Status '" + status + "':", currentLogData.expectedDuration);
-
-    if (startTimeOverride) {
-        currentLogData.startTime = new Date(startTimeOverride).toISOString().replace("T", " ").split(".")[0];
-    }
-    if (endTimeOverride) {
-        currentLogData.endTime = new Date(endTimeOverride).toISOString().replace("T", " ").split(".")[0];
-    }
-    if (duration) {
-        currentLogData.duration = duration;
-    }
-
-    toggleLoading(true); // Start loading animation
-    while (attempts < retryCount) {
-        try {
-            attempts++;
-            console.log(`Log Status attempt ${attempts}:`, currentLogData);
-
-            const response = await fetch(apiUrl, {
-                method: "POST",
-                mode: "no-cors",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(currentLogData)
-            });
-
-            console.log(`Log Status response (attempt ${attempts}):`, response);
-            isSuccess = true;
-            break; // Exit the loop on successful send
-
-        } catch (error) {
-            console.error(`Log Status error (attempt ${attempts}):`, error);
-            if (attempts < retryCount) {
-                console.log("Retrying Log Status in 2 seconds...");
-                await new Promise(resolve => setTimeout(resolve, 2000));
-            }
-        }
-    }
-
-    successIndicator.remove();
-    toggleLoading(false); // Stop loading animation after logging attempt
-
-    if (isSuccess) {
-        let successMessage = document.createElement("div");
-        successMessage.textContent = "Data sent!";
-        successMessage.style.color = "green";
-        document.getElementById("controls").appendChild(successMessage);
-        setTimeout(() => {
-            successMessage.remove();
-            if (duration !== "") {
-                document.getElementById("logoutBtn").disabled = false;
-            }
-        }, 3000);
-        return true; // Indicate success
-    } else {
-        showAlert(`Error: Failed to log status (${status}) after multiple retries. Check console.`);
-        if (startTimeOverride && !duration && !endTimeOverride) {
-            failedStartLog = { ...currentLogData };
-            console.log("Failed start log saved:", failedStartLog);
-            localStorage.setItem("failedStartLog", JSON.stringify(failedStartLog));
-        }
-        if (duration !== "") {
-            document.getElementById("logoutBtn").disabled = false;
-        }
-        return false; // Indicate failure
-    }
+  // ✅ Just queue it — don't block clicks for queued logs
+  logWorker.postMessage({ action: "saveLog", data: currentLogData });
+  console.log("Queued log for worker:", currentLogData);
 }
+
+const logWorker = new Worker("logWorker.js");
+
+// Pass API URL to worker once at startup
+
+logWorker.onmessage = (e) => {
+  if (e.data.type === "logSendingStart") {
+    showSendingOverlay();
+  }
+  if (e.data.type === "logSuccess") {
+    hideSendingOverlay();
+    showSentDialog();
+  }
+  if (e.data.type === "logFailure") {
+    hideSendingOverlay();
+    showAlert("Failed to send. Will retry automatically.");
+  }
+  if (e.data.type === "logSendingEnd") {
+    hideSendingOverlay();
+  }
+};
+
+
 
 function formatTime(ms) {
     let totalSeconds = Math.floor(ms / 1000);
@@ -2098,7 +1948,7 @@ document.getElementById("logoutBtn").addEventListener("click", async () => {
             "Are you sure you want to log out?",
             async () => {
                 console.log("Custom dialog confirmed");
-                await logStatus("logged out");
+                logStatus("logged out");
                 const clearScheduleUrl = `${apiUrl}?action=clearSchedule&userId=${loggedInUserId}`;
                 try {
                     const clearResult = await fetchData(clearScheduleUrl);
