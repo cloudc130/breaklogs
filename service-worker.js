@@ -1,5 +1,4 @@
-// Name of cache
-const CACHE_NAME = "break-tracker-v1";
+const CACHE_NAME = "break-tracker-v2";
 
 // Files to cache (adjust based on your setup)
 const FILES_TO_CACHE = [
@@ -7,6 +6,7 @@ const FILES_TO_CACHE = [
   "/index.html",         // main UI
   "/style.css",          // styles
   "/script.js",          // app logic
+  "/logWorker.js",      // log worker
   "/timerWorker.js",     // web worker
   "/alarm.wav",          // alarm sound
   "/break.png",          // break button icon
@@ -23,35 +23,40 @@ const FILES_TO_CACHE = [
 
 // Install event → cache core files
 self.addEventListener("install", (event) => {
+  console.log("Service Worker installing...");
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
+      console.log("Service Worker caching files...");
       return cache.addAll(FILES_TO_CACHE);
     })
   );
-  console.log("Service Worker installed & files cached.");
 });
 
 // Activate event → cleanup old caches
 self.addEventListener("activate", (event) => {
+  console.log("Service Worker activating and cleaning up old caches...");
   event.waitUntil(
     caches.keys().then((keyList) =>
       Promise.all(
         keyList.map((key) => {
           if (key !== CACHE_NAME) {
+            console.log("Service Worker removing old cache:", key);
             return caches.delete(key);
           }
         })
       )
     )
   );
-  console.log("Service Worker activated.");
 });
 
-// Fetch event → serve from cache, fallback to network
+// Fetch event → serve from cache, fall back to network
 self.addEventListener("fetch", (event) => {
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    })
-  );
+  // Only handle requests for the current origin to avoid issues with external assets
+  if (event.request.url.startsWith(self.location.origin)) {
+    event.respondWith(
+      caches.match(event.request).then((cachedResponse) => {
+        return cachedResponse || fetch(event.request);
+      })
+    );
+  }
 });
