@@ -79,6 +79,12 @@ if ("serviceWorker" in navigator) {
       .then((reg) => {
         console.log("Service Worker registered:", reg.scope);
 
+        // 🔄 Periodically check for updates while the page is open
+        setInterval(() => {
+          console.log("Checking for Service Worker updates...");
+          reg.update();
+        },5 * 60 * 1000); // every 60 seconds (adjust as needed)
+
         // Listen for updates to the Service Worker
         reg.addEventListener("updatefound", () => {
           const newWorker = reg.installing;
@@ -87,13 +93,10 @@ if ("serviceWorker" in navigator) {
           newWorker.addEventListener("statechange", () => {
             if (newWorker.state === "installed") {
               if (navigator.serviceWorker.controller) {
-                // A new version is available (not the first install)
                 console.log("New version installed. Activating...");
-
-                // Tell the new SW to activate immediately
                 newWorker.postMessage({ action: "skipWaiting" });
 
-                // When the new SW takes control, reload automatically
+                // Wait until new SW is controlling, then reload automatically
                 navigator.serviceWorker.addEventListener("controllerchange", () => {
                   console.log("New Service Worker controlling the page. Reloading...");
                   window.location.reload();
@@ -109,16 +112,6 @@ if ("serviceWorker" in navigator) {
       .catch((err) => console.error("Service Worker registration failed:", err));
   });
 }
-
-function showUpdatePrompt() {
-  console.log("A new version of the application is available. Reloading automatically...");
-  
-  // Wait for the new service worker to take control, then reload
-  navigator.serviceWorker.addEventListener("controllerchange", () => {
-    window.location.reload();
-  });
-}
-
 
 async function isActuallyOnline() {
   try {
