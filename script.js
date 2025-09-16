@@ -78,24 +78,29 @@ if ("serviceWorker" in navigator) {
       .register("/service-worker.js")
       .then((reg) => {
         console.log("Service Worker registered:", reg.scope);
-        // Add a listener to detect when a new worker is waiting
+
+        // Listen for updates to the Service Worker
         reg.addEventListener("updatefound", () => {
           const newWorker = reg.installing;
+          console.log("New Service Worker found...");
+
           newWorker.addEventListener("statechange", () => {
-            // The new Service Worker is ready to take over
             if (newWorker.state === "installed") {
-              // Now we can notify the user
               if (navigator.serviceWorker.controller) {
-                // A new version is available, but the old one is still running.
-                // We can now ask the user to update or do it automatically.
-                console.log("A new version is available. Prompting user to reload...");
-                // Send a message to the new worker to tell it to skip waiting and activate
+                // A new version is available (not the first install)
+                console.log("New version installed. Activating...");
+
+                // Tell the new SW to activate immediately
                 newWorker.postMessage({ action: "skipWaiting" });
-                // Now, show the update prompt.
-                showUpdatePrompt();
+
+                // When the new SW takes control, reload automatically
+                navigator.serviceWorker.addEventListener("controllerchange", () => {
+                  console.log("New Service Worker controlling the page. Reloading...");
+                  window.location.reload();
+                });
+
               } else {
-                // The first time the Service Worker is registered, we won't have a controller
-                console.log("Content is now available offline.");
+                console.log("Service Worker installed for the first time. Content is now cached offline.");
               }
             }
           });
@@ -106,13 +111,14 @@ if ("serviceWorker" in navigator) {
 }
 
 function showUpdatePrompt() {
-  if (confirm("A new version of the application is available. Do you want to update now?")) {
-    // Wait for the new service worker to take control, then reload
-    navigator.serviceWorker.addEventListener("controllerchange", () => {
-      window.location.reload();
-    });
-  }
+  console.log("A new version of the application is available. Reloading automatically...");
+  
+  // Wait for the new service worker to take control, then reload
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    window.location.reload();
+  });
 }
+
 
 async function isActuallyOnline() {
   try {
