@@ -106,12 +106,12 @@ if ("serviceWorker" in navigator) {
 }
 
 function showUpdatePrompt() {
-    // This function will display a UI element (like a modal or a banner)
-    // telling the user that a new version is available and asking them to reload.
-    // For now, let's just use a simple alert.
-    if (confirm("A new version of the application is available. Do you want to update now?")) {
-        window.location.reload(); // Reloads the page to load the new Service Worker and files
-    }
+  if (confirm("A new version of the application is available. Do you want to update now?")) {
+    // Wait for the new service worker to take control, then reload
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      window.location.reload();
+    });
+  }
 }
 
 async function isActuallyOnline() {
