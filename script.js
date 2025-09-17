@@ -1711,7 +1711,7 @@ async function startTimer(status) {
             localStorage.setItem("initialStartTime", initialStartTime);
             localStorage.setItem("status", status);
             localStorage.setItem("lastStatus", lastStatus);
-
+            
             // Allowed minutes
             let allowedMinutes = 0;
             if (status === "break") {
@@ -1815,7 +1815,7 @@ function restoreTimer() {
 
     timerWorker.postMessage({
         action: "restore",
-        data: { startTime: savedStartTime, status: savedStatus, allowedMinutes }
+        data: { startTime: savedStartTime, status: savedStatus, allowedMinutes, phtStartTime, phtStopTime }
     });
 
     console.log("Timer restored on page load for status:", savedStatus);
