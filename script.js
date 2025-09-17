@@ -72,20 +72,36 @@ const backgroundOptions = [
 
 const timerDisplay = document.getElementById("timer");
 
+const reloadedForUpdate = localStorage.getItem("reloadedForUpdate") === "true";
+
+// If the flag exists, it means we've just reloaded to apply an update.
+// Clear the flag immediately so we don't reload again.
+if (reloadedForUpdate) {
+    localStorage.removeItem("reloadedForUpdate");
+    console.log("Service Worker update applied. Reload flag cleared.");
+}
+
 if ("serviceWorker" in navigator) {
+  // Flag to prevent a reload loop
+  let reloadedForUpdate = localStorage.getItem("reloadedForUpdate") === "true";
+
+  // If the page has reloaded for an update, clear the flag and proceed as normal
+  if (reloadedForUpdate) {
+    localStorage.removeItem("reloadedForUpdate");
+  }
+
   window.addEventListener("load", () => {
     navigator.serviceWorker
       .register("/service-worker.js")
       .then((reg) => {
         console.log("Service Worker registered:", reg.scope);
 
-        // 🔄 Periodically check for updates while the page is open
+        // Periodically check for updates
         setInterval(() => {
           console.log("Checking for Service Worker updates...");
           reg.update();
-        },5 * 60 * 1000); // every 60 seconds (adjust as needed)
+        }, 5 * 60 * 1000); // every 5 minutes
 
-        // Listen for updates to the Service Worker
         reg.addEventListener("updatefound", () => {
           const newWorker = reg.installing;
           console.log("New Service Worker found...");
@@ -96,10 +112,16 @@ if ("serviceWorker" in navigator) {
                 console.log("New version installed. Activating...");
                 newWorker.postMessage({ action: "skipWaiting" });
 
-                // Wait until new SW is controlling, then reload automatically
+                // Set a flag before reloading to prevent a loop
+                localStorage.setItem("reloadedForUpdate", "true");
+                
+                // Reload the page only after a new service worker takes control
+                // The flag will prevent the listener from causing a loop
                 navigator.serviceWorker.addEventListener("controllerchange", () => {
-                  console.log("New Service Worker controlling the page. Reloading...");
-                  window.location.reload();
+                    if (localStorage.getItem("reloadedForUpdate") === "true") {
+                        console.log("New Service Worker controlling the page. Reloading...");
+                        window.location.reload();
+                    }
                 });
 
               } else {
