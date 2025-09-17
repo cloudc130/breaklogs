@@ -6,6 +6,12 @@ let alarmPlayed = false;
 let notifyLastMinute = false;
 let notifyExceeded = false;
 let lastReminderMinute = null;
+let expectedBreakTime = null; // New variable
+let expectedLunchTime = null; // New variable
+let breakNotificationSent = false; // New flag
+let lunchNotificationSent = false; // New flag
+let phtStartTime = null; // New global variable
+let phtStopTime = null;   // New global variable
 
 self.onmessage = function (e) {
   const { action, data } = e.data;
@@ -14,6 +20,12 @@ self.onmessage = function (e) {
     status = data.status;
     startTime = data.startTime || Date.now(); // restore may pass saved startTime
     allowedMinutes = data.allowedMinutes || 0;
+    expectedBreakTime = data.expectedBreakTime || null; // Capture the new data
+    expectedLunchTime = data.expectedLunchTime || null; // Capture the new data
+    phtStartTime = data.phtStartTime; // Store the PHT start time
+    phtStopTime = data.phtStopTime;   // Store the PHT stop time
+    breakNotificationSent = false;
+    lunchNotificationSent = false;
     alarmPlayed = false;
     notifyLastMinute = false;
     notifyExceeded = false;
@@ -25,7 +37,9 @@ self.onmessage = function (e) {
       const elapsedMinutes = Math.floor(elapsed / 60000);
 
       // Always tick
-      self.postMessage({ type: "tick", elapsed, status });
+      self.postMessage({ type: "tick", elapsed, status, phtStartTime, phtStopTime });
+
+      checkScheduledNotifications();
 
       // BIO special case: no fixed limit
       if (status === "bio") {
@@ -97,6 +111,12 @@ self.onmessage = function (e) {
         }
       }
     }, 1000);
+  } else if (action === "updateSchedule") {
+    // 👇 NEW: Handle the schedule update
+    expectedBreakTime = data.expectedBreakTime;
+    expectedLunchTime = data.expectedLunchTime;
+    breakNotificationSent = false;
+    lunchNotificationSent = false;
   }
 
   if (action === "stop") {
@@ -105,3 +125,34 @@ self.onmessage = function (e) {
     self.postMessage({ type: "stopped", status });
   }
 };
+
+function checkScheduledNotifications() {
+  // Use toLocaleString to get the time in the 'Asia/Manila' time zone (PHT)
+  const now = new Date();
+  const options = { timeZone: 'Asia/Manila', hour: '2-digit', minute: '2-digit', hour12: false };
+  const phtTime = now.toLocaleTimeString('en-US', options);
+
+  // Parse the PHT time string to get the hour and minute
+  const [phtHour, phtMinute] = phtTime.split(':');
+  const currentTimeInPHT = `${phtHour}:${phtMinute}`;
+
+  // Check for break time notification
+  if (expectedBreakTime && currentTimeInPHT === expectedBreakTime && !breakNotificationSent) {
+    self.postMessage({
+      type: "schedule_notification",
+      message: "Hey, it's time for your scheduled break!",
+      scheduleType: "break"
+    });
+    breakNotificationSent = true;
+  }
+
+  // Check for lunch time notification
+  if (expectedLunchTime && currentTimeInPHT === expectedLunchTime && !lunchNotificationSent) {
+    self.postMessage({
+      type: "schedule_notification",
+      message: "Hey, it's time for your scheduled lunch!",
+      scheduleType: "lunch"
+    });
+    lunchNotificationSent = true;
+  }
+}

@@ -297,6 +297,25 @@ button, input, h1, h2, td, th { /* Added table cells/headers */
   border-color: #00bcd4;
 }
 
+.timer-info-text {
+    position: absolute;
+    top: 50px; /* Adjust as needed */
+    z-index: 2001; /* Above the overlay tint */
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
+}
+
+#startTimeInfo {
+    left: 20px; /* Position on the left */
+}
+
+#stopTimeInfo {
+    right: 20px; /* Position on the right */
+}
+
 @keyframes flickerAnimation {
     0% { opacity: 1; }
     100% { opacity: 0.5; }

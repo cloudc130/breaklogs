@@ -160,7 +160,7 @@ function getDeviceType() {
 }
 
 timerWorker.onmessage = function(e) {
-  const { type, elapsed, message, status } = e.data;
+  const { type, elapsed, message, status, phtStartTime, phtStopTime } = e.data;
 
   // Keep legacy timerDisplay guarded (it may not exist, we kept a hidden placeholder)
   const timerDisplay = document.getElementById("timer");
@@ -177,7 +177,7 @@ timerWorker.onmessage = function(e) {
     }
 
     // Update overlay (new UI)
-    updateOverlay(elapsed, status, allowedMinutes);
+    updateOverlay(elapsed, status, allowedMinutes, phtStartTime, phtStopTime);
 
     // Legacy inline timer (kept hidden); guard null
     if (timerDisplay) {
@@ -200,6 +200,10 @@ timerWorker.onmessage = function(e) {
 
   if (type === "alarm") {
     playAlarm();
+    showSystemNotification(message);
+  }
+
+  if (type === "schedule_notification") {
     showSystemNotification(message);
   }
 
@@ -251,12 +255,34 @@ if (overlayStopBtn) {
 }
 
 // Update overlay with timer info
-function updateOverlay(elapsed, status, allowedMinutes) {
+function updateOverlay(elapsed, status, allowedMinutes, phtStartTime, phtStopTime) {
   overlayTimer.textContent = formatTime(elapsed);
   overlayStatus.textContent = status;
 
   const ring = document.querySelector(".progress-ring");
   const overlayAllowed = document.getElementById("overlayAllowed");
+
+    const startTimeInfo = document.getElementById("startTimeInfo");
+    const stopTimeInfo = document.getElementById("stopTimeInfo");
+
+    // Display PHT start time
+    if (startTimeInfo && phtStartTime) {
+        startTimeInfo.textContent = `Started: ${phtStartTime}`;
+    }
+
+    // Display PHT stop time OR exceeded time
+    if (stopTimeInfo) {
+        if (allowedMinutes > 0 && elapsed > allowedMinutes * 60 * 1000) {
+            // Timer has exceeded the allowed duration
+            const exceededTime = elapsed - (allowedMinutes * 60 * 1000);
+            stopTimeInfo.textContent = `Exceeded: ${formatTime(exceededTime)}`;
+        } else {
+            // Timer is still within the allowed duration
+            stopTimeInfo.textContent = phtStopTime ? `Ends at: ${phtStopTime}` : '';
+        }
+    }
+
+
 
   if (allowedMinutes > 0) {
     overlayAllowed.textContent = `Duration: ${allowedMinutes} min`;
@@ -515,6 +541,30 @@ function showScheduleUpdateDialog(showCloseButton = false) { // Default to false
     shiftEndInput.type = 'time';
     shiftEndInput.id = 'dialogShiftEnd';
 
+    const expectedBreakLabel = document.createElement('label');
+    expectedBreakLabel.textContent = "Expected Break Time:";
+    const breakOptionalText = document.createElement('span'); // Create a span element
+    breakOptionalText.textContent = " (Optional)";
+    breakOptionalText.className = "optional-text"; // Add a class for styling
+    expectedBreakLabel.appendChild(breakOptionalText); // Append the span to the label
+
+    const expectedBreakInput = document.createElement('input');
+    expectedBreakInput.type = 'time';
+    expectedBreakInput.id = 'dialogExpectedBreakTime';
+    expectedBreakInput.className = 'small-duration-input';
+
+    const expectedLunchLabel = document.createElement('label');
+    expectedLunchLabel.textContent = "Expected Lunch Time:";
+    const lunchOptionalText = document.createElement('span'); // Create a span element
+    lunchOptionalText.textContent = " (Optional)";
+    lunchOptionalText.className = "optional-text"; // Add a class for styling
+    expectedLunchLabel.appendChild(lunchOptionalText); // Append the span to the label
+
+    const expectedLunchInput = document.createElement('input');
+    expectedLunchInput.type = 'time';
+    expectedLunchInput.id = 'dialogExpectedLunchTime';
+    expectedLunchInput.className = 'small-duration-input';
+
     // --- NEW: Duration Preset Selection ---
     const durationPresetLabel = document.createElement('label');
     durationPresetLabel.textContent = "Choose Break/Lunch Preset:";
@@ -583,6 +633,10 @@ function showScheduleUpdateDialog(showCloseButton = false) { // Default to false
     dialog.appendChild(shiftStartInput);
     dialog.appendChild(shiftEndLabel);
     dialog.appendChild(shiftEndInput);
+    dialog.appendChild(expectedBreakLabel);
+    dialog.appendChild(expectedBreakInput);
+    dialog.appendChild(expectedLunchLabel);
+    dialog.appendChild(expectedLunchInput);
     dialog.appendChild(durationPresetLabel); // Append the preset select
     dialog.appendChild(durationPresetSelect);
     dialog.appendChild(customDurationsDiv); // Append the container for custom fields
@@ -614,6 +668,8 @@ function showScheduleUpdateDialog(showCloseButton = false) { // Default to false
         const shiftStart = document.getElementById('dialogShiftStart').value;
         const shiftEnd = document.getElementById('dialogShiftEnd').value;
         const selectedPreset = document.getElementById('dialogDurationPreset').value;
+        const expectedBreakTime = document.getElementById('dialogExpectedBreakTime').value;
+        const expectedLunchTime = document.getElementById('dialogExpectedLunchTime').value;
 
         let breakDuration, lunchDuration;
 
@@ -661,6 +717,16 @@ function showScheduleUpdateDialog(showCloseButton = false) { // Default to false
                 localStorage.setItem("shiftEnd", shiftEnd);
                 localStorage.setItem("breakDuration", breakDuration);
                 localStorage.setItem("lunchDuration", lunchDuration);
+                localStorage.setItem("expectedBreakTime", expectedBreakTime);
+                localStorage.setItem("expectedLunchTime", expectedLunchTime);
+
+                timerWorker.postMessage({
+                    action: "updateSchedule",
+                    data: {
+                        expectedBreakTime: expectedBreakTime,
+                        expectedLunchTime: expectedLunchTime
+                    }
+                });
 
                 removeScheduleDialog();
                 document.getElementById("controls").style.display = "block";
@@ -1632,8 +1698,17 @@ async function startTimer(status) {
                 allowedMinutes = parseInt(localStorage.getItem("lunchDuration"), 10) || 0;
             }
 
+            const now = new Date();
+            const phtOptions = { timeZone: 'Asia/Manila' };
+            const phtStartTime = now.toLocaleString('en-US', phtOptions);
+            let phtStopTime = '';
+            if (allowedMinutes > 0) {
+                const stopDateTime = new Date(now.getTime() + allowedMinutes * 60 * 1000);
+                phtStopTime = stopDateTime.toLocaleString('en-US', phtOptions);
+            }
+
             // Start timer in worker
-            timerWorker.postMessage({ action: "start", data: { status, allowedMinutes } });
+            timerWorker.postMessage({ action: "start", data: { status, allowedMinutes, phtStartTime, phtStopTime } });
 
             if (timerOverlay) {
                 applyOverlayBackground();
@@ -1705,6 +1780,15 @@ function restoreTimer() {
         allowedMinutes = parseInt(localStorage.getItem("breakDuration"), 10) || 0;
     } else if (savedStatus === "lunch") {
         allowedMinutes = parseInt(localStorage.getItem("lunchDuration"), 10) || 0;
+    }
+
+    const restoredDate = new Date(savedStartTime);
+    const phtOptions = { timeZone: 'Asia/Manila' };
+    const phtStartTime = restoredDate.toLocaleString('en-US', phtOptions);
+    let phtStopTime = '';
+    if (allowedMinutes > 0) {
+        const stopDateTime = new Date(savedStartTime + allowedMinutes * 60 * 1000);
+        phtStopTime = stopDateTime.toLocaleString('en-US', phtOptions);
     }
 
     timerWorker.postMessage({

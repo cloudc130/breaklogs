@@ -1,4 +1,4 @@
-const CACHE_NAME = "break-tracker-v8";
+const CACHE_NAME = "break-tracker-v21";
 
 // Files to cache (adjust based on your setup)
 const FILES_TO_CACHE = [
