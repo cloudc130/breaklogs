@@ -2136,7 +2136,7 @@ document.getElementById("exportHistoryBtn").addEventListener("click", () => {
         "This will download a file of all your logs. Continue?",
         () => { // Confirm callback
             const userId = localStorage.getItem("agentId");
-    	    const apiUrl = "https://script.google.com/macros/s/AKfycbwVSGD4wv0-AEsWZs4qC5XlYRRd2dSfFlIvHqI0wvmqQI6ryBdfcc03RmOFnLtrZ7O81g/exec"; // Replace with your Apps Script URL
+    	    const apiUrl = "https://script.google.com/macros/s/AKfycbwYHKuwi2uq7OKqpT7VC6QPyPitxPjd9XdRmAcvH24UHhBfklHufhCTj_vjkbML0Syu3Q/exec"; // Replace with your Apps Script URL
 
     if (userId) {
         const url = `${apiUrl}?action=exportData&userId=${userId}`;
