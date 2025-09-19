@@ -33,6 +33,89 @@ button, input, h1, h2, td, th { /* Added table cells/headers */
     justify-content: center; /* Center content horizontally within container */
 }
 
+.surprise-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85); /* Darker, more dramatic overlay */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    backdrop-filter: blur(5px);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+
+.surprise-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.surprise-dialog {
+    background: radial-gradient(circle at center, #2e2e2e 0%, #1a1a1a 100%);
+    padding: 40px; /* Slightly larger padding */
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+    text-align: center;
+    max-width: 550px;
+    width: 90%;
+    transform: scale(0.7);
+    transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+    opacity: 0;
+}
+
+.surprise-overlay.show .surprise-dialog {
+    opacity: 1;
+    transform: scale(1);
+    animation: dialogGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes dialogGlow {
+    from {
+        box-shadow: 0 0 10px rgba(255, 215, 0, 0.5), 0 0 20px rgba(255, 215, 0, 0.3);
+    }
+    to {
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 0 0 40px rgba(255, 215, 0, 0.5);
+    }
+}
+
+.surprise-dialog h2 {
+    color: #ffd700; /* Gold color for a festive feel */
+    font-size: 2.8em;
+    margin-bottom: 20px;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+    letter-spacing: 2px;
+}
+
+.surprise-dialog p {
+    font-size: 1.3em;
+    line-height: 1.5;
+    margin-bottom: 30px;
+}
+
+.surprise-dialog button {
+    background-color: #ffd700;
+    color: #333333;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+}
+
+.surprise-dialog button:hover {
+    background-color: #ffc400;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(255, 215, 0, 0.7);
+}
+
 .background-option img {
     opacity: 0;
     transition: opacity 0.3s ease-in-out;

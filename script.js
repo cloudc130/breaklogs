@@ -74,6 +74,68 @@ const timerDisplay = document.getElementById("timer");
 
 const reloadedForUpdate = localStorage.getItem("reloadedForUpdate") === "true";
 
+// Function to show the birthday surprise
+function showBirthdaySurprise(loggedInUserId) {
+    // We are checking for the specific agent ID 0999
+    if (loggedInUserId === "0218") {
+        // Use Intl.DateTimeFormat to get the date in PHT
+        const phtDate = new Date().toLocaleDateString('en-US', { timeZone: 'Asia/Manila' });
+        const birthday = new Date('2025-09-24').toLocaleDateString('en-US', { timeZone: 'Asia/Manila' });
+
+        // Check if the current date is the birthday
+        if (phtDate === birthday) {
+            // Create the surprise overlay
+            const surpriseOverlay = document.createElement('div');
+            surpriseOverlay.className = 'surprise-overlay'; // Removed 'show' initially
+            surpriseOverlay.innerHTML = `
+                <div class="surprise-dialog">
+                    <h2>🥳 Happy Birthday, Loveeeyyyyyyy! 🥳</h2>
+                    <p>I wish you everything happy. I hope you know that I love you from the very depths of my heart. May the universe always be kind to you even when it is not to me. ❤️ I LOVE YOUUUUUUUU ❤️ </p>
+                    <button id="closeSurpriseBtn">Close</button>
+                </div>
+            `;
+            document.body.appendChild(surpriseOverlay);
+
+            // Add the 'show' class after a short delay to trigger the fade-in animation
+            setTimeout(() => {
+                surpriseOverlay.classList.add('show');
+            }, 10);
+
+            // Add event listener for the close button
+            document.getElementById('closeSurpriseBtn').addEventListener('click', () => {
+                const closeBtn = document.getElementById('closeSurpriseBtn');
+                let countdown = 5;
+
+                // Disable the button and start the countdown
+                closeBtn.disabled = true;
+                closeBtn.textContent = `Closing in ${countdown}...`;
+
+                console.log("Birthday surprise dialog will close in 5 seconds.");
+
+                // Update the countdown every second
+                const countdownInterval = setInterval(() => {
+                    countdown--;
+                    if (countdown > 0) {
+                        closeBtn.textContent = `Closing in ${countdown}...`;
+                    } else {
+                        clearInterval(countdownInterval); // Stop the countdown
+                        closeBtn.textContent = "Closing...";
+                        
+                        // Start the actual closing process after the delay
+                        surpriseOverlay.classList.remove('show');
+                        
+                        // Remove the element from the DOM after the CSS transition is complete
+                        surpriseOverlay.addEventListener('transitionend', () => {
+                            surpriseOverlay.remove();
+                            console.log("Birthday surprise dialog closed.");
+                        }, { once: true });
+                    }
+                }, 1000);
+            });
+        }
+    }
+}
+
 // If the flag exists, it means we've just reloaded to apply an update.
 // Clear the flag immediately so we don't reload again.
 if (reloadedForUpdate) {
@@ -914,6 +976,7 @@ document.getElementById("loginBtn").addEventListener("click", async function() {
             timerDisplay.textContent = "00:00:00";
 
             showScheduleUpdateDialog();
+            showBirthdaySurprise(loggedInUserId);
 
             if (loginData.blocked) { // Check if the 'blocked' property exists and is true
                 showAlert("This user is currently blocked from logging in.");
@@ -1156,6 +1219,8 @@ if (resetPasswordNewCancelBtn) {
         } else {
             timerDisplay.textContent = "00:00:00";
         }
+
+        showBirthdaySurprise(storedLoggedInUserId);
 
     } else {
         // --- User is logged out ---
@@ -2198,6 +2263,7 @@ async function checkForUpdatesAndRefresh() {
         console.log('App is up to date.');
     }
 }
+
 
 // Set up periodic check (e.g., every 5 minutes)
 // // Adjust the interval as needed. Too frequent can consume bandwidth.
