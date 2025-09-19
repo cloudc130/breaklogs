@@ -136,6 +136,36 @@ function showBirthdaySurprise(loggedInUserId) {
     }
 }
 
+function showGoodDayMessage(loggedInUserId) {
+    const specificUserId = "0218"; 
+
+    // Check if the user is the specific agent and it's their birthday
+    if (loggedInUserId === specificUserId) {
+        
+        // Create the message dialog
+        const messageOverlay = document.createElement('div');
+        messageOverlay.className = 'surprise-overlay show'; // Reuses the same styling
+        messageOverlay.innerHTML = `
+            <div class="surprise-dialog">
+                <h2>🌞 Good Day my Loveeeeeyyyyyy!</h2>
+                <p>Have a great day po. Love na love kitaaa ❤️!</p>
+            </div>
+        `;
+        document.body.appendChild(messageOverlay);
+
+        // Automatically remove the element after 6 seconds
+        setTimeout(() => {
+            messageOverlay.classList.remove('show');
+
+            // Remove the element from the DOM after the CSS transition is complete
+            messageOverlay.addEventListener('transitionend', () => {
+                messageOverlay.remove();
+            }, { once: true });
+            
+        }, 6000); // 6000 milliseconds = 6 seconds
+    }
+}
+
 // If the flag exists, it means we've just reloaded to apply an update.
 // Clear the flag immediately so we don't reload again.
 if (reloadedForUpdate) {
@@ -977,6 +1007,7 @@ document.getElementById("loginBtn").addEventListener("click", async function() {
 
             showScheduleUpdateDialog();
             showBirthdaySurprise(loggedInUserId);
+            showGoodDayMessage(loggedInUserId);
 
             if (loginData.blocked) { // Check if the 'blocked' property exists and is true
                 showAlert("This user is currently blocked from logging in.");
@@ -1221,6 +1252,7 @@ if (resetPasswordNewCancelBtn) {
         }
 
         showBirthdaySurprise(storedLoggedInUserId);
+        showGoodDayMessage(loggedInUserId);
 
     } else {
         // --- User is logged out ---
